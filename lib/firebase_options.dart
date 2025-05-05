@@ -41,47 +41,49 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'YOUR_API_KEY',
-    appId: 'YOUR_APP_ID',
-    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-    projectId: 'YOUR_PROJECT_ID',
-    authDomain: 'YOUR_AUTH_DOMAIN',
-    storageBucket: 'YOUR_STORAGE_BUCKET',
+    apiKey: 'AIzaSyBE2yZ7naKsKcdwiRsvuL9ZBlSgmmcjFds',
+    appId: '1:1014981934855:web:8cacc2eafc7a9e7efc8fa2',
+    messagingSenderId: '1014981934855',
+    projectId: 'coffe-shope-72bc2',
+    authDomain: 'coffe-shope-72bc2.firebaseapp.com',
+    storageBucket: 'coffe-shope-72bc2.firebasestorage.app',
+    measurementId: 'G-JPHSXFV51X',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'YOUR_API_KEY',
-    appId: 'YOUR_APP_ID',
-    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-    projectId: 'YOUR_PROJECT_ID',
-    storageBucket: 'YOUR_STORAGE_BUCKET',
+    apiKey: 'AIzaSyArVZo5ghD8svzpDSU8DPtK1XILvus_LAw',
+    appId: '1:1014981934855:android:fe57dc73b166b6e3fc8fa2',
+    messagingSenderId: '1014981934855',
+    projectId: 'coffe-shope-72bc2',
+    storageBucket: 'coffe-shope-72bc2.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'YOUR_API_KEY',
-    appId: 'YOUR_APP_ID',
-    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-    projectId: 'YOUR_PROJECT_ID',
-    storageBucket: 'YOUR_STORAGE_BUCKET',
-    iosClientId: 'YOUR_IOS_CLIENT_ID',
-    iosBundleId: 'YOUR_IOS_BUNDLE_ID',
+    apiKey: 'AIzaSyD1Thi2wrMwkR_FB2jZ0SeoZxlChQXTiAs',
+    appId: '1:1014981934855:ios:d342b8256bde150afc8fa2',
+    messagingSenderId: '1014981934855',
+    projectId: 'coffe-shope-72bc2',
+    storageBucket: 'coffe-shope-72bc2.firebasestorage.app',
+    iosBundleId: 'com.example.app',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'YOUR_API_KEY',
-    appId: 'YOUR_APP_ID',
-    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-    projectId: 'YOUR_PROJECT_ID',
-    storageBucket: 'YOUR_STORAGE_BUCKET',
-    iosClientId: 'YOUR_IOS_CLIENT_ID',
-    iosBundleId: 'YOUR_IOS_BUNDLE_ID',
+    apiKey: 'AIzaSyD1Thi2wrMwkR_FB2jZ0SeoZxlChQXTiAs',
+    appId: '1:1014981934855:ios:d342b8256bde150afc8fa2',
+    messagingSenderId: '1014981934855',
+    projectId: 'coffe-shope-72bc2',
+    storageBucket: 'coffe-shope-72bc2.firebasestorage.app',
+    iosBundleId: 'com.example.app',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'YOUR_API_KEY',
-    appId: 'YOUR_APP_ID',
-    messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-    projectId: 'YOUR_PROJECT_ID',
-    storageBucket: 'YOUR_STORAGE_BUCKET',
+    apiKey: 'AIzaSyBE2yZ7naKsKcdwiRsvuL9ZBlSgmmcjFds',
+    appId: '1:1014981934855:web:94c9d07a1e2bd7b6fc8fa2',
+    messagingSenderId: '1014981934855',
+    projectId: 'coffe-shope-72bc2',
+    authDomain: 'coffe-shope-72bc2.firebaseapp.com',
+    storageBucket: 'coffe-shope-72bc2.firebasestorage.app',
+    measurementId: 'G-CHFZ796RTY',
   );
+
 }
