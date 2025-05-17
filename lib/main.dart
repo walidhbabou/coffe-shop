@@ -3,9 +3,10 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'package:coffee_shop/data/repositories/auth_repository.dart';
 import 'package:coffee_shop/domain/viewmodels/auth_viewmodel.dart';
-import 'package:coffee_shop/presentation/pages/splash_page.dart';
+import 'package:coffee_shop/presentation/pages/welcome/welcome_page.dart';
 import 'package:coffee_shop/presentation/pages/auth/login_page.dart';
-import 'package:coffee_shop/presentation/pages/auth/register_page.dart';
+import 'package:coffee_shop/presentation/pages/auth/signup_page.dart';
+import 'package:coffee_shop/presentation/pages/profile/profile_home_page.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -46,11 +47,12 @@ class MyApp extends StatelessWidget {
         ),
         initialRoute: '/',
         routes: {
-          '/': (context) => const SplashPage(),
-          '/auth': (context) => const LoginPage(),
-          '/register': (context) => const RegisterPage(),
-          '/home': (context) => const HomePage(),
+          '/': (context) => const WelcomePage(),
+          '/login': (context) => const LoginPage(),
+          '/signup': (context) => const SignupPage(),
+          '/profile': (context) => const ProfileHomePage(),
         },
+        debugShowCheckedModeBanner: false,
       ),
     );
   }
@@ -82,4 +84,3 @@ class HomePage extends StatelessWidget {
     );
   }
 }
-

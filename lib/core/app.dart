@@ -8,18 +8,34 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Coffee App',
+      title: 'Coffee Shop',
       theme: ThemeData(
-        primarySwatch: AppColors.primaryColor,
-        scaffoldBackgroundColor: AppColors.backgroundColor,
+        primarySwatch: Colors.brown,
+        scaffoldBackgroundColor: const Color(0xFFF5E3C0),
         appBarTheme: const AppBarTheme(
-          backgroundColor: AppColors.primaryColor,
+          backgroundColor: Colors.white,
           elevation: 0,
+          iconTheme: IconThemeData(color: Colors.brown),
+          titleTextStyle: TextStyle(
+            color: Colors.brown,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.brown,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 16),
+          ),
         ),
       ),
-      initialRoute: AppRoutes.splash,
+      initialRoute: AppRoutes.welcome,
       onGenerateRoute: AppRoutes.generateRoute,
       debugShowCheckedModeBanner: false,
     );
   }
-} 
+}

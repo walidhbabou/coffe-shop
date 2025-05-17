@@ -93,7 +93,7 @@ class _LoginPageState extends State<LoginPage> {
                                 if (authViewModel.isAuthenticated &&
                                     context.mounted) {
                                   Navigator.of(context)
-                                      .pushReplacementNamed('/home');
+                                      .pushReplacementNamed('/profile');
                                 }
                               }
                             },
@@ -118,7 +118,7 @@ class _LoginPageState extends State<LoginPage> {
                   const SizedBox(height: 16),
                   TextButton(
                     onPressed: () {
-                      Navigator.of(context).pushNamed('/register');
+                      Navigator.of(context).pushReplacementNamed('/signup');
                     },
                     child: const Text(
                       'Créer un compte',
@@ -141,4 +141,4 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
   }
-} 
+}

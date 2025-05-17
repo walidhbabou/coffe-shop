@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:coffee_shop/domain/viewmodels/auth_viewmodel.dart';
 
-class RegisterPage extends StatefulWidget {
-  const RegisterPage({super.key});
+class SignupPage extends StatefulWidget {
+  const SignupPage({super.key});
 
   @override
-  State<RegisterPage> createState() => _RegisterPageState();
+  State<SignupPage> createState() => _SignupPageState();
 }
 
-class _RegisterPageState extends State<RegisterPage> {
+class _SignupPageState extends State<SignupPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -118,7 +118,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                 if (authViewModel.isAuthenticated &&
                                     context.mounted) {
                                   Navigator.of(context)
-                                      .pushReplacementNamed('/home');
+                                      .pushReplacementNamed('/login');
                                 }
                               }
                             },
@@ -143,7 +143,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   const SizedBox(height: 16),
                   TextButton(
                     onPressed: () {
-                      Navigator.of(context).pop();
+                      Navigator.of(context).pushReplacementNamed('/login');
                     },
                     child: const Text(
                       'Déjà un compte ? Se connecter',
