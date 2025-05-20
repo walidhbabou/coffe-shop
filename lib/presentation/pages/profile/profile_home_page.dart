@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:coffee_shop/domain/viewmodels/auth_viewmodel.dart';
 import 'scan_pay_page.dart';
-import 'order_page.dart';
+import '../../pages/order/order_page.dart' as order;
 import 'account_page.dart';
 import 'rewards_page.dart';
 
@@ -19,7 +19,7 @@ class _ProfileHomePageState extends State<ProfileHomePage> {
   final List<Widget> _pages = [
     const _HomeContent(),
     const ScanPayPage(),
-    const OrderPage(),
+    const order.OrderPage(), // Utilise la page Order en grille
     const AccountPage(),
     const RewardsPage(),
   ];
