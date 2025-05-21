@@ -29,15 +29,38 @@ class FavoriteDrinkCard extends StatelessWidget {
             const SizedBox(height: 12),
             SizedBox(
               height: 80,
-              child: drink.imagePath.startsWith('http')
-                  ? Image.network(
-                      drink.imagePath,
-                      fit: BoxFit.cover,
-                    )
-                  : Image.asset(
-                      drink.imagePath,
-                      fit: BoxFit.cover,
-                    ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  drink.imagePath,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      height: 80,
+                      width: double.infinity,
+                      color: Colors.grey[200],
+                      child: const Icon(Icons.error_outline, color: Colors.grey),
+                    );
+                  },
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Container(
+                      height: 80,
+                      width: double.infinity,
+                      color: Colors.grey[200],
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                                  loadingProgress.expectedTotalBytes!
+                              : null,
+                          color: Colors.brown,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
             ),
             const SizedBox(height: 16),
             Text(
@@ -75,7 +98,7 @@ class FavoriteDrinkCard extends StatelessWidget {
                   ),
                 ),
               ),
-            const Spacer(),
+            const SizedBox(height: 8),
             Align(
               alignment: Alignment.bottomRight,
               child: Padding(

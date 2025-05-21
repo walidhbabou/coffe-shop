@@ -24,11 +24,32 @@ class OrderViewModel extends ChangeNotifier {
     notifyListeners();
     try {
       final products = await _productService.fetchProducts();
-      _drinks = products;
+      _drinks = products.map((drink) => Drink.fromJson(drink.toJson())..isFavorite = false).toList();
     } catch (e) {
       _error = e.toString();
     }
     _isLoading = false;
     notifyListeners();
+  }
+
+  void addFavorite(Drink drink) {
+    final index = _drinks.indexWhere((d) => d.id == drink.id);
+    if (index != -1) {
+      _drinks[index].isFavorite = true;
+      notifyListeners();
+    }
+  }
+
+  void removeFavorite(Drink drink) {
+    final index = _drinks.indexWhere((d) => d.id == drink.id);
+    if (index != -1) {
+      _drinks[index].isFavorite = false;
+      notifyListeners();
+    }
+  }
+
+  bool isFavorite(Drink drink) {
+    final index = _drinks.indexWhere((d) => d.id == drink.id);
+    return index != -1 ? _drinks[index].isFavorite : false;
   }
 }

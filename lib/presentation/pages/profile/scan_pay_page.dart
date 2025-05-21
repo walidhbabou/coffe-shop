@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 
-class ScanPayPage extends StatelessWidget {
+class ScanPayPage extends StatefulWidget {
   const ScanPayPage({Key? key}) : super(key: key);
+
+  @override
+  State<ScanPayPage> createState() => _ScanPayPageState();
+}
+
+class _ScanPayPageState extends State<ScanPayPage> {
+  MobileScannerController controller = MobileScannerController();
 
   @override
   Widget build(BuildContext context) {
@@ -40,17 +48,26 @@ class ScanPayPage extends StatelessWidget {
                     color: Colors.grey[200],
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.qr_code_scanner,
-                      size: 100,
-                      color: Colors.brown,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: MobileScanner(
+                      controller: controller,
+                      onDetect: (capture) {
+                        final List<Barcode> barcodes = capture.barcodes;
+                        for (final barcode in barcodes) {
+                          debugPrint('Barcode found! ${barcode.rawValue}');
+                          // Traiter les données du QR code ici
+                          _showQRResult(context, barcode.rawValue ?? 'Aucune donnée');
+                        }
+                      },
                     ),
                   ),
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    controller.start();
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.brown,
                     minimumSize: const Size(double.infinity, 50),
@@ -59,7 +76,7 @@ class ScanPayPage extends StatelessWidget {
                     ),
                   ),
                   child: const Text(
-                    'Scan QR Code',
+                    'Scanner QR Code',
                     style: TextStyle(fontSize: 16),
                   ),
                 ),
@@ -98,6 +115,28 @@ class ScanPayPage extends StatelessWidget {
     );
   }
 
+  void _showQRResult(BuildContext context, String result) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Résultat du scan'),
+        content: Text(result),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
   Widget _buildPaymentOption({
     required IconData icon,
     required String title,
@@ -105,7 +144,7 @@ class ScanPayPage extends StatelessWidget {
     bool isWallet = false,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -117,7 +156,7 @@ class ScanPayPage extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color:
                   isWallet ? Colors.brown.withOpacity(0.1) : Colors.grey[100],
@@ -126,7 +165,7 @@ class ScanPayPage extends StatelessWidget {
             child: Icon(
               icon,
               color: isWallet ? Colors.brown : Colors.grey[700],
-              size: 24,
+              size: 22,
             ),
           ),
           const SizedBox(width: 16),

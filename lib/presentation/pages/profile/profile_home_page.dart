@@ -208,7 +208,7 @@ class _HomeContent extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           SizedBox(
-            height: 200,
+            height: 180,
             child: ListView(
               scrollDirection: Axis.horizontal,
               children: [
