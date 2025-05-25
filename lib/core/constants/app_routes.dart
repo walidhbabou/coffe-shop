@@ -6,7 +6,6 @@ import '../../presentation/pages/profile/profile_home_page.dart';
 import '../../presentation/pages/profile/scan_pay_page.dart';
 import '../../presentation/pages/order/order_page.dart';
 import '../../presentation/pages/profile/account_page.dart';
-import '../../presentation/pages/profile/rewards_page.dart';
 
 class AppRoutes {
   static const String welcome = '/';
@@ -16,7 +15,6 @@ class AppRoutes {
   static const String scanPay = '/scan_pay';
   static const String order = '/order';
   static const String account = '/account';
-  static const String rewards = '/rewards';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -29,13 +27,17 @@ class AppRoutes {
       case profile:
         return MaterialPageRoute(builder: (_) => const ProfileHomePage());
       case scanPay:
-        return MaterialPageRoute(builder: (_) => const ScanPayPage());
+        return MaterialPageRoute(
+            builder: (_) => const ScanPayPage(
+                  transactionId: 'DEMO',
+                  total: 0.0,
+                  date: '2024-01-01',
+                  time: '00:00',
+                ));
       case order:
         return MaterialPageRoute(builder: (_) => const OrderPage());
       case account:
         return MaterialPageRoute(builder: (_) => const AccountPage());
-      case rewards:
-        return MaterialPageRoute(builder: (_) => const RewardsPage());
       default:
         return MaterialPageRoute(builder: (_) => const WelcomePage());
     }

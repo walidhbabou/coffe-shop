@@ -2,7 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 class ScanPayPage extends StatefulWidget {
-  const ScanPayPage({Key? key}) : super(key: key);
+  final String transactionId;
+  final double total;
+  final String date;
+  final String time;
+  final bool showOnlyInfo;
+  const ScanPayPage({
+    Key? key,
+    required this.transactionId,
+    required this.total,
+    required this.date,
+    required this.time,
+    this.showOnlyInfo = false,
+  }) : super(key: key);
 
   @override
   State<ScanPayPage> createState() => _ScanPayPageState();
@@ -10,107 +22,69 @@ class ScanPayPage extends StatefulWidget {
 
 class _ScanPayPageState extends State<ScanPayPage> {
   MobileScannerController controller = MobileScannerController();
+  int _selectedIndex = 1;
+
+  void _onItemTapped(int index) {
+    if (index == _selectedIndex) return;
+    setState(() {
+      _selectedIndex = index;
+    });
+    switch (index) {
+      case 0:
+        Navigator.pushReplacementNamed(context, '/profile');
+        break;
+      case 1:
+        // Déjà sur Scan/Pay
+        break;
+      case 2:
+        Navigator.pushReplacementNamed(context, '/order');
+        break;
+      case 3:
+        Navigator.pushReplacementNamed(context, '/account');
+        break;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Scan & Pay',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 24),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                Container(
-                  height: 250,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(12),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF7F4EF),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: MobileScanner(
-                      controller: controller,
-                      onDetect: (capture) {
-                        final List<Barcode> barcodes = capture.barcodes;
-                        for (final barcode in barcodes) {
-                          debugPrint('Barcode found! ${barcode.rawValue}');
-                          // Traiter les données du QR code ici
-                          _showQRResult(context, barcode.rawValue ?? 'Aucune donnée');
-                        }
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () {
-                    controller.start();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.brown,
-                    minimumSize: const Size(double.infinity, 50),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'Scanner QR Code',
-                    style: TextStyle(fontSize: 16),
-                  ),
-                ),
-              ],
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Transaction ID: ${widget.transactionId}',
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  Text('Total: ${widget.total.toStringAsFixed(2)} €',
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  Text('Date: ${widget.date}  ${widget.time}',
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 24),
-          const Text(
-            'Quick Pay Options',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          _buildPaymentOption(
-            icon: Icons.credit_card,
-            title: 'Pay with Card',
-            subtitle: 'Use your saved cards',
-          ),
-          const SizedBox(height: 12),
-          _buildPaymentOption(
-            icon: Icons.account_balance_wallet,
-            title: 'Coffee Shop Wallet',
-            subtitle: 'Balance: \$25.50',
-            isWallet: true,
-          ),
-          const SizedBox(height: 12),
-          _buildPaymentOption(
-            icon: Icons.phone_android,
-            title: 'Mobile Payment',
-            subtitle: 'Apple Pay, Google Pay',
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

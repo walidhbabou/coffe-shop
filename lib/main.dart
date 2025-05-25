@@ -7,6 +7,7 @@ import 'package:coffee_shop/presentation/pages/welcome/welcome_page.dart';
 import 'package:coffee_shop/presentation/pages/auth/login_page.dart';
 import 'package:coffee_shop/presentation/pages/auth/signup_page.dart';
 import 'package:coffee_shop/presentation/pages/profile/profile_home_page.dart';
+import 'package:coffee_shop/domain/viewmodels/order_viewmodel.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -37,6 +38,9 @@ class MyApp extends StatelessWidget {
             authVM?.setRepository(authRepo);
             return authVM!;
           },
+        ),
+        ChangeNotifierProvider<OrderViewModel>(
+          create: (_) => OrderViewModel(),
         ),
       ],
       child: MaterialApp(

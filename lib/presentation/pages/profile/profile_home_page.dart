@@ -4,7 +4,21 @@ import 'package:coffee_shop/domain/viewmodels/auth_viewmodel.dart';
 import 'scan_pay_page.dart';
 import '../../pages/order/order_page.dart' as order;
 import 'account_page.dart';
-import 'rewards_page.dart';
+import 'package:coffee_shop/domain/viewmodels/order_viewmodel.dart';
+import '../../pages/order/cart_page.dart';
+import '../../widgets/favorite_drink_card.dart';
+
+class PaymentInfo {
+  final String transactionId;
+  final double total;
+  final String date;
+  final String time;
+  PaymentInfo(
+      {required this.transactionId,
+      required this.total,
+      required this.date,
+      required this.time});
+}
 
 class ProfileHomePage extends StatefulWidget {
   const ProfileHomePage({Key? key}) : super(key: key);
@@ -15,57 +29,76 @@ class ProfileHomePage extends StatefulWidget {
 
 class _ProfileHomePageState extends State<ProfileHomePage> {
   int _selectedIndex = 0;
+  PaymentInfo? _pendingPaymentInfo;
 
-  final List<Widget> _pages = [
-    const _HomeContent(),
-    const ScanPayPage(),
-    const order.OrderPage(), // Utilise la page Order en grille
-    const AccountPage(),
-    const RewardsPage(),
-  ];
-
-  void _onItemTapped(int index) {
+  void showPaymentInfo(PaymentInfo info) {
     setState(() {
-      _selectedIndex = index;
+      _pendingPaymentInfo = info;
+      _selectedIndex = 1; // ScanPayPage
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final orderViewModel = context.watch<OrderViewModel>();
+    final favorites = orderViewModel.favorites;
+    final List<Widget> _pages = [
+      _HomeContent(),
+      ScanPayPage(
+        transactionId: _pendingPaymentInfo?.transactionId ?? 'DEMO',
+        total: _pendingPaymentInfo?.total ?? 0.0,
+        date: _pendingPaymentInfo?.date ?? '2024-01-01',
+        time: _pendingPaymentInfo?.time ?? '00:00',
+        showOnlyInfo: _pendingPaymentInfo != null,
+      ),
+      const order.OrderPage(),
+      const AccountPage(),
+    ];
     return Scaffold(
       backgroundColor: const Color(0xFFF7F4EF),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.menu, color: Colors.brown),
-          onPressed: () {},
-        ),
-        title: Image.asset(
-          'assets/images/coffee_logo.png',
-          height: 32,
-        ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.shopping_bag_outlined, color: Colors.brown),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.brown),
-            onPressed: () async {
-              await context.read<AuthViewModel>().signOut();
-              if (context.mounted) {
-                Navigator.of(context).pushReplacementNamed('/');
-              }
-            },
-          ),
-        ],
-      ),
       body: _pages[_selectedIndex],
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.brown,
+        onPressed: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const CartPage()),
+          );
+        },
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            const Icon(Icons.shopping_bag_outlined, color: Colors.white),
+            if (orderViewModel.cart.isNotEmpty)
+              Positioned(
+                right: 0,
+                top: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    orderViewModel.cart.length.toString(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
+        onTap: (index) {
+          setState(() {
+            _selectedIndex = index;
+            if (index != 1) _pendingPaymentInfo = null;
+          });
+        },
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.brown,
         unselectedItemColor: Colors.black38,
@@ -86,10 +119,6 @@ class _ProfileHomePageState extends State<ProfileHomePage> {
             icon: Icon(Icons.person_outline),
             label: 'Account',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.star_border),
-            label: 'Rewards',
-          ),
         ],
       ),
     );
@@ -101,103 +130,70 @@ class _HomeContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<AuthViewModel>().currentUser;
+    final userName =
+        user?.displayName ?? user?.email?.split('@').first ?? 'User';
+    final orderViewModel = context.watch<OrderViewModel>();
+    final favorites = orderViewModel.favorites;
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      'Good Morning Vasken!',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Yay for Coffeeeee! ☕',
-                      style: TextStyle(fontSize: 16, color: Colors.black54),
-                    ),
-                  ],
-                ),
-              ),
-              CircleAvatar(
-                radius: 28,
-                backgroundImage: NetworkImage(
-                  'https://randomuser.me/api/portraits/men/32.jpg',
-                ),
-                backgroundColor: Colors.brown.shade100,
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
           Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            margin: const EdgeInsets.only(bottom: 24),
             decoration: BoxDecoration(
-              color: const Color(0xFF4B7A5A),
-              borderRadius: BorderRadius.circular(12),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.brown.withOpacity(0.08),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-            padding: const EdgeInsets.all(16),
             child: Row(
               children: [
+                CircleAvatar(
+                  radius: 32,
+                  backgroundImage: user?.photoURL != null
+                      ? NetworkImage(user!.photoURL!)
+                      : const NetworkImage(
+                          'https://randomuser.me/api/portraits/men/32.jpg'),
+                  backgroundColor: Colors.brown.shade100,
+                ),
+                const SizedBox(width: 18),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
+                    children: [
                       Text(
-                        'BONUS REWARDS',
-                        style: TextStyle(
-                          color: Colors.white70,
+                        'Hi $userName!',
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 12,
+                          fontSize: 26,
+                          color: Color(0xFF4E342E),
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 6),
                       Text(
-                        'Coffee Delivered to your house',
+                        'Welcome back to Coffee Shop ☕',
                         style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
                           fontSize: 16,
+                          color: Colors.brown[300],
+                          fontWeight: FontWeight.w500,
                         ),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        'Order 2 bags of coffee and get bonus stars!\nOrder any of our coffee and get an additional 30 Stars! Now that\'s how you get free coffee!',
-                        style: TextStyle(color: Colors.white, fontSize: 13),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                Column(
-                  children: [
-                    Image.asset(
-                      'assets/images/coffee_logo.png',
-                      width: 60,
-                      height: 80,
-                      fit: BoxFit.cover,
-                    ),
-                    const SizedBox(height: 8),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.brown,
-                        shape: StadiumBorder(),
-                      ),
-                      onPressed: () {},
-                      child: const Text('Shop now'),
-                    ),
-                  ],
-                ),
               ],
             ),
           ),
+          const SizedBox(height: 24),
           const SizedBox(height: 32),
           const Text(
             'Your favorites',
@@ -208,76 +204,143 @@ class _HomeContent extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           SizedBox(
-            height: 180,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: [
-                _buildFavoriteCard(
-                  context,
-                  'assets/images/iced_pumpkin.png',
-                  'Iced Pumpkin Spice',
-                ),
-                _buildFavoriteCard(
-                  context,
-                  'assets/images/mocha_cookie.png',
-                  'Mocha Cookie Frap',
-                ),
-                _buildFavoriteCard(
-                  context,
-                  'assets/images/assorted.png',
-                  'Assorted Coffee',
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFavoriteCard(
-      BuildContext context, String imagePath, String title) {
-    return Container(
-      width: 160,
-      margin: const EdgeInsets.only(right: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-            child: Image.asset(
-              imagePath,
-              height: 120,
-              width: double.infinity,
-              fit: BoxFit.cover,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
+            height: 170,
+            child: favorites.isEmpty
+                ? const Center(child: Text('No favorites yet'))
+                : ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: favorites.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 14),
+                    itemBuilder: (context, index) {
+                      final drink = favorites[index];
+                      final cartCount = orderViewModel.cart[drink.id] ?? 0;
+                      final isWide = MediaQuery.of(context).size.width > 400;
+                      return Container(
+                        width: isWide ? 150 : 120,
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.brown.withOpacity(0.10),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(14),
+                              child: drink.imagePath.startsWith('http')
+                                  ? Image.network(drink.imagePath,
+                                      height: 60, width: 60, fit: BoxFit.cover)
+                                  : Image.asset(drink.imagePath,
+                                      height: 60, width: 60, fit: BoxFit.cover),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              drink.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                                color: Color(0xFF4E342E),
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            if (drink.price != null)
+                              Text(
+                                '${drink.price!.toStringAsFixed(2)} €',
+                                style: TextStyle(
+                                  color: Colors.brown[700],
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            const Spacer(),
+                            SizedBox(
+                              width: isWide ? 110 : 38,
+                              height: 36,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.brown,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(18),
+                                  ),
+                                  elevation: 3,
+                                  padding: EdgeInsets.zero,
+                                ),
+                                onPressed: () {
+                                  orderViewModel.addToCart(drink);
+                                },
+                                child: isWide
+                                    ? Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          const Icon(
+                                              Icons.shopping_bag_outlined,
+                                              size: 16,
+                                              color: Colors.white),
+                                          const SizedBox(width: 6),
+                                          Flexible(
+                                            child: Text(
+                                              cartCount > 0
+                                                  ? 'x$cartCount'
+                                                  : 'Ajouter',
+                                              style: const TextStyle(
+                                                  fontSize: 13,
+                                                  color: Colors.white),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    : Stack(
+                                        alignment: Alignment.center,
+                                        children: [
+                                          const Icon(
+                                              Icons.shopping_bag_outlined,
+                                              size: 18,
+                                              color: Colors.white),
+                                          if (cartCount > 0)
+                                            Positioned(
+                                              right: 2,
+                                              top: 2,
+                                              child: Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 4,
+                                                        vertical: 1),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.red,
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                ),
+                                                child: Text(
+                                                  'x$cartCount',
+                                                  style: const TextStyle(
+                                                      fontSize: 10,
+                                                      color: Colors.white,
+                                                      fontWeight:
+                                                          FontWeight.bold),
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Customize',
-                  style: TextStyle(
-                    color: Colors.brown[700],
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
           ),
         ],
       ),

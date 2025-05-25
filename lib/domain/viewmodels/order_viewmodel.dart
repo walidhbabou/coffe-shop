@@ -6,13 +6,13 @@ class OrderViewModel extends ChangeNotifier {
   final ProductService _productService = ProductService();
 
   List<Drink> _drinks = [];
-  List<Drink> _cart = [];
+  Map<String, int> _cart = {};
   bool _isLoading = false;
   String? _error;
 
   List<Drink> get drinks => _drinks;
   List<Drink> get favorites => _drinks.where((d) => d.isFavorite).toList();
-  List<Drink> get cart => _cart;
+  Map<String, int> get cart => _cart;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
@@ -26,7 +26,9 @@ class OrderViewModel extends ChangeNotifier {
     notifyListeners();
     try {
       final products = await _productService.fetchProducts();
-      _drinks = products.map((drink) => Drink.fromJson(drink.toJson())..isFavorite = false).toList();
+      _drinks = products
+          .map((drink) => Drink.fromJson(drink.toJson())..isFavorite = false)
+          .toList();
     } catch (e) {
       _error = e.toString();
     }
@@ -56,7 +58,34 @@ class OrderViewModel extends ChangeNotifier {
   }
 
   void addToCart(Drink drink) {
-    _cart.add(drink);
+    if (_cart.containsKey(drink.id)) {
+      _cart[drink.id] = _cart[drink.id]! + 1;
+    } else {
+      _cart[drink.id] = 1;
+    }
+    notifyListeners();
+  }
+
+  void removeFromCart(Drink drink) {
+    if (_cart.containsKey(drink.id)) {
+      if (_cart[drink.id]! > 1) {
+        _cart[drink.id] = _cart[drink.id]! - 1;
+      } else {
+        _cart.remove(drink.id);
+      }
+      notifyListeners();
+    }
+  }
+
+  List<MapEntry<Drink, int>> get cartEntries {
+    return _cart.entries.map((entry) {
+      final drink = _drinks.firstWhere((d) => d.id == entry.key);
+      return MapEntry(drink, entry.value);
+    }).toList();
+  }
+
+  void clearCart() {
+    _cart.clear();
     notifyListeners();
   }
 }
