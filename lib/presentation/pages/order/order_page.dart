@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../domain/viewmodels/order_viewmodel.dart';
 import '../../widgets/drink_card.dart';
 import '../../widgets/favorite_drink_card.dart';
+import '../cart_page.dart';
 
 class OrderPage extends StatefulWidget {
   const OrderPage({Key? key}) : super(key: key);
@@ -29,6 +30,12 @@ class _OrderPageState extends State<OrderPage> {
             return Center(child: Text('Erreur: ' + viewModel.error!));
           }
           return Scaffold(
+            appBar: AppBar(
+              automaticallyImplyLeading: false,
+              backgroundColor: const Color(0xFFF7F2EC),
+              elevation: 0,
+              actions: [], 
+            ),
             backgroundColor: const Color(0xFFF7F2EC),
             body: Container(
               decoration: const BoxDecoration(

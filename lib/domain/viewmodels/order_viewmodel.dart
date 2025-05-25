@@ -6,11 +6,13 @@ class OrderViewModel extends ChangeNotifier {
   final ProductService _productService = ProductService();
 
   List<Drink> _drinks = [];
+  List<Drink> _cart = [];
   bool _isLoading = false;
   String? _error;
 
   List<Drink> get drinks => _drinks;
   List<Drink> get favorites => _drinks.where((d) => d.isFavorite).toList();
+  List<Drink> get cart => _cart;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
@@ -51,5 +53,10 @@ class OrderViewModel extends ChangeNotifier {
   bool isFavorite(Drink drink) {
     final index = _drinks.indexWhere((d) => d.id == drink.id);
     return index != -1 ? _drinks[index].isFavorite : false;
+  }
+
+  void addToCart(Drink drink) {
+    _cart.add(drink);
+    notifyListeners();
   }
 }

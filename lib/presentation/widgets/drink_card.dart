@@ -131,6 +131,7 @@ class _DrinkCardState extends State<DrinkCard> {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
+                      Provider.of<OrderViewModel>(context, listen: false).addToCart(widget.drink);
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Ajouté au panier'),
