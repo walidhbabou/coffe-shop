@@ -4,7 +4,7 @@ import '../../presentation/pages/auth/login_page.dart';
 import '../../presentation/pages/auth/signup_page.dart';
 import '../../presentation/pages/profile/profile_home_page.dart';
 import '../../presentation/pages/profile/scan_pay_page.dart';
-import '../../presentation/pages/profile/order_page.dart';
+// import '../../presentation/pages/profile/order_page.dart';
 import '../../presentation/pages/profile/account_page.dart';
 import '../../presentation/pages/profile/rewards_page.dart';
 
@@ -30,8 +30,8 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const ProfileHomePage());
       case scanPay:
         return MaterialPageRoute(builder: (_) => const ScanPayPage());
-      case order:
-        return MaterialPageRoute(builder: (_) => const OrderPage());
+      // case order:
+      //   return MaterialPageRoute(builder: (_) => const OrderPage());
       case account:
         return MaterialPageRoute(builder: (_) => const AccountPage());
       case rewards:
