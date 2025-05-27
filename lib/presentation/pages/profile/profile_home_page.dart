@@ -1,24 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:coffee_shop/domain/viewmodels/auth_viewmodel.dart';
-import 'scan_pay_page.dart';
-import '../../pages/order/order_page.dart' as order;
+import '../Scan/scan_pay_page.dart';
+import '../order/order_page.dart' as order;
 import 'account_page.dart';
 import 'package:coffee_shop/domain/viewmodels/order_viewmodel.dart';
 import '../../pages/order/cart_page.dart';
 import '../../widgets/favorite_drink_card.dart';
-
-class PaymentInfo {
-  final String transactionId;
-  final double total;
-  final String date;
-  final String time;
-  PaymentInfo(
-      {required this.transactionId,
-      required this.total,
-      required this.date,
-      required this.time});
-}
+import '../../../data/models/payment_info.dart';
 
 class ProfileHomePage extends StatefulWidget {
   const ProfileHomePage({Key? key}) : super(key: key);
@@ -45,10 +34,12 @@ class _ProfileHomePageState extends State<ProfileHomePage> {
     final List<Widget> _pages = [
       _HomeContent(),
       ScanPayPage(
-        transactionId: _pendingPaymentInfo?.transactionId ?? 'DEMO',
-        total: _pendingPaymentInfo?.total ?? 0.0,
-        date: _pendingPaymentInfo?.date ?? '2024-01-01',
-        time: _pendingPaymentInfo?.time ?? '00:00',
+        paymentInfo: PaymentInfo(
+          transactionId: _pendingPaymentInfo?.transactionId ?? 'DEMO',
+          total: _pendingPaymentInfo?.total ?? 0.0,
+          date: _pendingPaymentInfo?.date ?? '2024-01-01',
+          time: _pendingPaymentInfo?.time ?? '00:00',
+        ),
         showOnlyInfo: _pendingPaymentInfo != null,
       ),
       const order.OrderPage(),
@@ -61,7 +52,7 @@ class _ProfileHomePageState extends State<ProfileHomePage> {
         backgroundColor: Colors.brown,
         onPressed: () {
           Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const CartPage()),
+            MaterialPageRoute(builder: (_) => CartPage(onPay: showPaymentInfo)),
           );
         },
         child: Stack(

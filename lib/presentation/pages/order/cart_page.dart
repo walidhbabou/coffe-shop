@@ -3,9 +3,10 @@ import 'package:provider/provider.dart';
 import '../../../domain/viewmodels/order_viewmodel.dart';
 import '../../../data/models/drink.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../data/models/payment_info.dart';
 import 'cart_page.dart';
-import '../../pages/profile/scan_pay_page.dart';
-import '../../pages/profile/profile_home_page.dart';
+import '../Scan/scan_pay_page.dart';
+import '../profile/profile_home_page.dart';
 
 class CartPage extends StatefulWidget {
   final void Function(PaymentInfo)? onPay;
@@ -302,27 +303,17 @@ class _CartPageState extends State<CartPage> {
                         ElevatedButton(
                           onPressed: isPayEnabled
                               ? () {
-                                  final snackBar = SnackBar(
-                                    content: Text(
-                                        'Paiement en cours...\nTransaction: $transactionId\nTotal: ${total.toStringAsFixed(2)} €\nDate: $formattedDate $formattedTime'),
-                                    backgroundColor: Colors.brown,
-                                    duration: const Duration(seconds: 2),
+                                  final paymentInfo = PaymentInfo(
+                                    transactionId: transactionId,
+                                    total: total,
+                                    date: formattedDate,
+                                    time: formattedTime,
                                   );
-                                  ScaffoldMessenger.of(context)
-                                      .showSnackBar(snackBar);
-                                  Future.delayed(const Duration(seconds: 2),
-                                      () {
-                                    orderViewModel.clearCart();
-                                    if (widget.onPay != null) {
-                                      widget.onPay!(PaymentInfo(
-                                        transactionId: transactionId,
-                                        total: total,
-                                        date: formattedDate,
-                                        time: formattedTime,
-                                      ));
-                                    }
-                                    Navigator.of(context).pop();
-                                  });
+                                  orderViewModel.clearCart();
+                                  if (widget.onPay != null) {
+                                    widget.onPay!(paymentInfo);
+                                  }
+                                  Navigator.of(context).pop();
                                 }
                               : null,
                           style: ElevatedButton.styleFrom(
