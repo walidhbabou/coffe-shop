@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:coffee_shop/domain/viewmodels/auth_viewmodel.dart';
-import 'scan_pay_page.dart';
-import '../../pages/order/order_page.dart' as order;
+import '../Scan/scan_pay_page.dart';
+import '../order/order_page.dart' as order;
 import 'account_page.dart';
 import 'package:coffee_shop/domain/viewmodels/order_viewmodel.dart';
 import '../../pages/order/cart_page.dart';

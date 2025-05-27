@@ -5,15 +5,10 @@ import '../../../data/models/drink.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../data/models/payment_info.dart';
 import 'cart_page.dart';
-<<<<<<< HEAD
-import '../scan/scan_pay_page.dart';
-import '../../pages/profile/profile_home_page.dart';
-import 'payment_page.dart';
-import '../scan/qr_transaction_page.dart';
-=======
 import '../Scan/scan_pay_page.dart';
 import '../profile/profile_home_page.dart';
->>>>>>> alae
+import 'payment_page.dart';
+import '../scan/qr_transaction_page.dart';
 
 class CartPage extends StatefulWidget {
   final void Function(PaymentInfo)? onPay;
@@ -311,13 +306,6 @@ class _CartPageState extends State<CartPage> {
                         ElevatedButton(
                           onPressed: isPayEnabled
                               ? () {
-<<<<<<< HEAD
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (context) => PaymentPage(),
-                                    ),
-                                  );
-=======
                                   final paymentInfo = PaymentInfo(
                                     transactionId: transactionId,
                                     total: total,
@@ -329,7 +317,6 @@ class _CartPageState extends State<CartPage> {
                                     widget.onPay!(paymentInfo);
                                   }
                                   Navigator.of(context).pop();
->>>>>>> alae
                                 }
                               : null,
                           style: ElevatedButton.styleFrom(

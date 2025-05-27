@@ -6,6 +6,7 @@ import '../../presentation/pages/profile/profile_home_page.dart';
 import '../../presentation/pages/scan/scan_pay_page.dart';
 import '../../presentation/pages/order/order_page.dart';
 import '../../presentation/pages/profile/account_page.dart';
+import '../../../data/models/payment_info.dart';
 
 class AppRoutes {
   static const String welcome = '/';
@@ -29,10 +30,12 @@ class AppRoutes {
       case scanPay:
         return MaterialPageRoute(
             builder: (_) => const ScanPayPage(
-                  transactionId: 'DEMO',
-                  total: 0.0,
-                  date: '2024-01-01',
-                  time: '00:00',
+                  paymentInfo: PaymentInfo(
+                    transactionId: 'DEMO',
+                    total: 0.0,
+                    date: '2024-01-01',
+                    time: '00:00',
+                  ),
                 ));
       case order:
         return MaterialPageRoute(builder: (_) => const OrderPage());

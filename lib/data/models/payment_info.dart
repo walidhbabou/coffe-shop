@@ -4,7 +4,7 @@ class PaymentInfo {
   final String date;
   final String time;
 
-  PaymentInfo({
+  const PaymentInfo({
     required this.transactionId,
     required this.total,
     required this.date,

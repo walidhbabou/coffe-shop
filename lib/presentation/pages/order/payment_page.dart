@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../domain/viewmodels/order_viewmodel.dart';
 import '../../widgets/drink_card.dart';
+import '../../../data/models/payment_info.dart';
 import '../scan/scan_pay_page.dart';
 import 'dart:math';
 
+// Ajout d'un commentaire pour forcer la réanalyse
 class PaymentPage extends StatelessWidget {
   const PaymentPage({Key? key}) : super(key: key);
 
@@ -111,10 +113,12 @@ class PaymentPage extends StatelessWidget {
                   Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (context) => ScanPayPage(
-                        transactionId: transactionId,
-                        total: total,
-                        date: date,
-                        time: time,
+                        paymentInfo: PaymentInfo(
+                          transactionId: transactionId,
+                          total: total,
+                          date: date,
+                          time: time,
+                        ),
                         showOnlyInfo: false,
                       ),
                     ),
