@@ -3,7 +3,7 @@ import '../../presentation/pages/welcome/welcome_page.dart';
 import '../../presentation/pages/auth/login_page.dart';
 import '../../presentation/pages/auth/signup_page.dart';
 import '../../presentation/pages/profile/profile_home_page.dart';
-import '../../presentation/pages/profile/scan_pay_page.dart';
+import '../../presentation/pages/scan/scan_pay_page.dart';
 import '../../presentation/pages/order/order_page.dart';
 import '../../presentation/pages/profile/account_page.dart';
 

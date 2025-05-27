@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:coffee_shop/domain/viewmodels/auth_viewmodel.dart';
-import 'scan_pay_page.dart';
+import '../scan/scan_pay_page.dart';
 import '../../pages/order/order_page.dart' as order;
 import 'account_page.dart';
 import 'package:coffee_shop/domain/viewmodels/order_viewmodel.dart';
@@ -21,7 +21,8 @@ class PaymentInfo {
 }
 
 class ProfileHomePage extends StatefulWidget {
-  const ProfileHomePage({Key? key}) : super(key: key);
+  final PaymentInfo? pendingPaymentInfo;
+  const ProfileHomePage({Key? key, this.pendingPaymentInfo}) : super(key: key);
 
   @override
   State<ProfileHomePage> createState() => _ProfileHomePageState();
@@ -31,6 +32,15 @@ class _ProfileHomePageState extends State<ProfileHomePage> {
   int _selectedIndex = 0;
   PaymentInfo? _pendingPaymentInfo;
   bool _isLoggingOut = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _pendingPaymentInfo = widget.pendingPaymentInfo;
+    if (_pendingPaymentInfo != null) {
+      _selectedIndex = 1; // Aller directement à ScanPayPage
+    }
+  }
 
   void showPaymentInfo(PaymentInfo info) {
     setState(() {
