@@ -111,7 +111,7 @@ class _DrinkCardState extends State<DrinkCard> {
                     ),
                     onPressed: () {
                       Provider.of<OrderViewModel>(context, listen: false)
-                          .addToCart(widget.drink);
+                          .addToCart(widget.drink.id);
                     },
                   ),
                 ),
@@ -131,9 +131,9 @@ class _DrinkCardState extends State<DrinkCard> {
                 final orderViewModel =
                     Provider.of<OrderViewModel>(context, listen: false);
                 if (isFavorite) {
-                  orderViewModel.removeFavorite(widget.drink);
+                  orderViewModel.removeFavorite(widget.drink.id);
                 } else {
-                  orderViewModel.addFavorite(widget.drink);
+                  orderViewModel.addFavorite(widget.drink.id);
                 }
                 setState(() {});
               },

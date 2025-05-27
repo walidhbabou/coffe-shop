@@ -9,7 +9,8 @@ class WelcomePage extends StatefulWidget {
   State<WelcomePage> createState() => _WelcomePageState();
 }
 
-class _WelcomePageState extends State<WelcomePage> with SingleTickerProviderStateMixin {
+class _WelcomePageState extends State<WelcomePage>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
   late Animation<double> _opacityAnimation;
@@ -85,7 +86,6 @@ class _WelcomePageState extends State<WelcomePage> with SingleTickerProviderStat
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 40),
-                
                 // Bouton Se connecter animé
                 AnimatedBuilder(
                   animation: _controller,
@@ -113,25 +113,23 @@ class _WelcomePageState extends State<WelcomePage> with SingleTickerProviderStat
                               ),
                             ],
                           ),
-                          child: ElevatedButton(
-                            onPressed: () {
-                              // Ajout d'un effet de pulse au clic
-                              HapticFeedback.mediumImpact();
-                              Navigator.of(context).pushReplacementNamed('/login');
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.transparent,
-                              shadowColor: Colors.transparent,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            ),
-                            child: const Text(
-                              'Se connecter',
-                              style: TextStyle(
-                                fontSize: 18, 
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(16),
+                              onTap: () {
+                                Navigator.of(context).pushNamed('/login');
+                              },
+                              child: const Center(
+                                child: Text(
+                                  'Se connecter',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -140,7 +138,20 @@ class _WelcomePageState extends State<WelcomePage> with SingleTickerProviderStat
                     );
                   },
                 ),
-                             
+                const SizedBox(height: 18),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pushNamed('/signup');
+                  },
+                  child: const Text(
+                    "Créer un compte",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),

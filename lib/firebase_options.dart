@@ -85,5 +85,4 @@ class DefaultFirebaseOptions {
     storageBucket: 'coffe-shope-72bc2.firebasestorage.app',
     measurementId: 'G-CHFZ796RTY',
   );
-
 }

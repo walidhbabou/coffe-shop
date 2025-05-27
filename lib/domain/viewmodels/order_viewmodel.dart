@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
 import '../../data/models/drink.dart';
 import '../../data/services/product_service.dart';
+import 'package:coffee_shop/data/services/user_data_service.dart';
 
 class OrderViewModel extends ChangeNotifier {
   final ProductService _productService = ProductService();
 
   List<Drink> _drinks = [];
+  List<String> _favorites = [];
   Map<String, int> _cart = {};
+  List<Map<String, dynamic>> _orders = [];
   bool _isLoading = false;
   String? _error;
 
   List<Drink> get drinks => _drinks;
-  List<Drink> get favorites => _drinks.where((d) => d.isFavorite).toList();
+  List<Drink> get favorites =>
+      _drinks.where((d) => _favorites.contains(d.id)).toList();
   Map<String, int> get cart => _cart;
   bool get isLoading => _isLoading;
   String? get error => _error;
@@ -26,9 +30,8 @@ class OrderViewModel extends ChangeNotifier {
     notifyListeners();
     try {
       final products = await _productService.fetchProducts();
-      _drinks = products
-          .map((drink) => Drink.fromJson(drink.toJson())..isFavorite = false)
-          .toList();
+      _drinks =
+          products.map((drink) => Drink.fromJson(drink.toJson())).toList();
     } catch (e) {
       _error = e.toString();
     }
@@ -36,45 +39,15 @@ class OrderViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void addFavorite(Drink drink) {
-    final index = _drinks.indexWhere((d) => d.id == drink.id);
-    if (index != -1) {
-      _drinks[index].isFavorite = true;
-      notifyListeners();
-    }
-  }
-
-  void removeFavorite(Drink drink) {
-    final index = _drinks.indexWhere((d) => d.id == drink.id);
-    if (index != -1) {
-      _drinks[index].isFavorite = false;
-      notifyListeners();
-    }
-  }
-
-  bool isFavorite(Drink drink) {
-    final index = _drinks.indexWhere((d) => d.id == drink.id);
-    return index != -1 ? _drinks[index].isFavorite : false;
-  }
-
-  void addToCart(Drink drink) {
-    if (_cart.containsKey(drink.id)) {
-      _cart[drink.id] = _cart[drink.id]! + 1;
-    } else {
-      _cart[drink.id] = 1;
-    }
+  Future<void> loadUserData() async {
+    _favorites = await UserDataService.loadFavorites();
+    _cart = await UserDataService.loadCart();
+    _orders = await UserDataService.loadOrders();
     notifyListeners();
   }
 
-  void removeFromCart(Drink drink) {
-    if (_cart.containsKey(drink.id)) {
-      if (_cart[drink.id]! > 1) {
-        _cart[drink.id] = _cart[drink.id]! - 1;
-      } else {
-        _cart.remove(drink.id);
-      }
-      notifyListeners();
-    }
+  bool isFavorite(Drink drink) {
+    return _favorites.contains(drink.id);
   }
 
   List<MapEntry<Drink, int>> get cartEntries {
@@ -86,6 +59,48 @@ class OrderViewModel extends ChangeNotifier {
 
   void clearCart() {
     _cart.clear();
+    UserDataService.saveCart(_cart);
+    notifyListeners();
+  }
+
+  void addFavorite(String drinkId) {
+    if (!_favorites.contains(drinkId)) {
+      _favorites.add(drinkId);
+      UserDataService.saveFavorites(_favorites);
+      notifyListeners();
+    }
+  }
+
+  void removeFavorite(String drinkId) {
+    if (_favorites.remove(drinkId)) {
+      UserDataService.saveFavorites(_favorites);
+      notifyListeners();
+    }
+  }
+
+  void addToCart(String drinkId) {
+    _cart.update(drinkId, (q) => q + 1, ifAbsent: () => 1);
+    UserDataService.saveCart(_cart);
+    notifyListeners();
+  }
+
+  void removeFromCart(String drinkId) {
+    if (_cart.containsKey(drinkId)) {
+      if (_cart[drinkId]! > 1) {
+        _cart[drinkId] = _cart[drinkId]! - 1;
+      } else {
+        _cart.remove(drinkId);
+      }
+      UserDataService.saveCart(_cart);
+      notifyListeners();
+    }
+  }
+
+  Future<void> addOrder(double total) async {
+    await UserDataService.addOrder(_cart, total);
+    _orders = await UserDataService.loadOrders();
+    _cart.clear();
+    UserDataService.saveCart(_cart);
     notifyListeners();
   }
 }

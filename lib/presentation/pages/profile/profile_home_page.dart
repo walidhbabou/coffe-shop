@@ -30,6 +30,7 @@ class ProfileHomePage extends StatefulWidget {
 class _ProfileHomePageState extends State<ProfileHomePage> {
   int _selectedIndex = 0;
   PaymentInfo? _pendingPaymentInfo;
+  bool _isLoggingOut = false;
 
   void showPaymentInfo(PaymentInfo info) {
     setState(() {
@@ -41,6 +42,16 @@ class _ProfileHomePageState extends State<ProfileHomePage> {
   @override
   Widget build(BuildContext context) {
     final orderViewModel = context.watch<OrderViewModel>();
+    final authViewModel = context.watch<AuthViewModel>();
+    if (authViewModel.currentUser == null && !_isLoggingOut) {
+      _isLoggingOut = true;
+      Future.microtask(() {
+        if (mounted) {
+          Navigator.of(context)
+              .pushNamedAndRemoveUntil('/login', (route) => false);
+        }
+      });
+    }
     final favorites = orderViewModel.favorites;
     final List<Widget> _pages = [
       _HomeContent(),
@@ -56,7 +67,28 @@ class _ProfileHomePageState extends State<ProfileHomePage> {
     ];
     return Scaffold(
       backgroundColor: const Color(0xFFF7F4EF),
-      body: _pages[_selectedIndex],
+      body: Stack(
+        children: [
+          _pages[_selectedIndex],
+          if (_selectedIndex ==
+              0) // Affiche le bouton seulement sur l'accueil du profil
+            Positioned(
+              top: 36,
+              right: 24,
+              child: IconButton(
+                icon: const Icon(Icons.logout, color: Colors.brown, size: 28),
+                tooltip: 'Déconnexion',
+                onPressed: () async {
+                  await context.read<AuthViewModel>().signOut();
+                  if (mounted) {
+                    Navigator.of(context)
+                        .pushNamedAndRemoveUntil('/login', (route) => false);
+                  }
+                },
+              ),
+            ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.brown,
         onPressed: () {
@@ -276,7 +308,7 @@ class _HomeContent extends StatelessWidget {
                                   padding: EdgeInsets.zero,
                                 ),
                                 onPressed: () {
-                                  orderViewModel.addToCart(drink);
+                                  orderViewModel.addToCart(drink.id);
                                 },
                                 child: isWide
                                     ? Row(

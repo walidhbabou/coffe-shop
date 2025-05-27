@@ -174,7 +174,7 @@ class _CartPageState extends State<CartPage> {
                                           ? null
                                           : () {
                                               orderViewModel
-                                                  .removeFromCart(drink);
+                                                  .removeFromCart(drink.id);
                                             },
                                     ),
                                     Text('$quantity',
@@ -187,7 +187,8 @@ class _CartPageState extends State<CartPage> {
                                       onPressed: isLocked
                                           ? null
                                           : () {
-                                              orderViewModel.addToCart(drink);
+                                              orderViewModel
+                                                  .addToCart(drink.id);
                                             },
                                     ),
                                   ],

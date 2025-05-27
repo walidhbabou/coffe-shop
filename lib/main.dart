@@ -9,6 +9,7 @@ import 'package:coffee_shop/presentation/pages/auth/signup_page.dart';
 import 'package:coffee_shop/presentation/pages/profile/profile_home_page.dart';
 import 'package:coffee_shop/domain/viewmodels/order_viewmodel.dart';
 import 'firebase_options.dart';
+import 'core/app.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
