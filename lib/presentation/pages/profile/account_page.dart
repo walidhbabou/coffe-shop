@@ -1,82 +1,144 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:coffee_shop/domain/viewmodels/auth_viewmodel.dart';
+import 'package:coffee_shop/presentation/pages/profile/personal_info_page.dart';
+import 'package:coffee_shop/presentation/pages/profile/payment_methods_page.dart';
+import 'package:coffee_shop/presentation/pages/profile/addresses_page.dart';
+import 'package:coffee_shop/presentation/pages/profile/notifications_page.dart';
+import 'package:coffee_shop/presentation/pages/profile/rewards_page.dart';
+import 'package:coffee_shop/presentation/pages/profile/about_page.dart';
 
 class AccountPage extends StatelessWidget {
   const AccountPage({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final authViewModel = context.watch<AuthViewModel>();
+    final user = authViewModel.currentUser;
+    final userName = user?.displayName ?? user?.email?.split('@').first ?? 'Utilisateur';
+    final userEmail = user?.email ?? 'Non connecté';
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Account',
+            'Compte',
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 24),
-          _buildProfileCard(),
+          _buildProfileCard(userName, userEmail, user?.photoURL),
           const SizedBox(height: 24),
-          _buildSectionTitle('Account Settings'),
+          _buildSectionTitle('Paramètres du compte'),
           _buildSettingItem(
             icon: Icons.person_outline,
-            title: 'Personal Information',
-            onTap: () {},
+            title: 'Informations personnelles',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PersonalInfoPage(),
+                ),
+              );
+            },
           ),
           _buildSettingItem(
             icon: Icons.payment,
-            title: 'Payment Methods',
-            onTap: () {},
+            title: 'Méthodes de paiement',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const PaymentMethodsPage()),
+              );
+            },
           ),
           _buildSettingItem(
             icon: Icons.location_on_outlined,
-            title: 'Addresses',
-            onTap: () {},
+            title: 'Adresses',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AddressesPage()),
+              );
+            },
           ),
           _buildSettingItem(
             icon: Icons.notifications_outlined,
             title: 'Notifications',
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const NotificationsPage()),
+              );
+            },
           ),
           const SizedBox(height: 24),
-          _buildSectionTitle('Rewards & Benefits'),
+          _buildSectionTitle('Récompenses & Avantages'),
           _buildSettingItem(
             icon: Icons.star_border,
-            title: 'Stars & Rewards',
-            subtitle: '150 stars available',
-            onTap: () {},
+            title: 'Étoiles & Récompenses',
+            subtitle: '150 étoiles disponibles',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const RewardsPage()),
+              );
+            },
           ),
           _buildSettingItem(
             icon: Icons.card_giftcard,
-            title: 'Gift Cards',
-            onTap: () {},
+            title: 'Cartes cadeaux',
+            onTap: () {
+              // TODO: Naviguer vers la page des cartes cadeaux
+            },
           ),
           const SizedBox(height: 24),
-          _buildSectionTitle('About'),
+          _buildSectionTitle('À propos'),
           _buildSettingItem(
             icon: Icons.info_outline,
-            title: 'About Coffee Shop',
-            onTap: () {},
+            title: 'À propos de Coffee Shop',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AboutPage()),
+              );
+            },
           ),
           _buildSettingItem(
             icon: Icons.help_outline,
-            title: 'Help Center',
-            onTap: () {},
+            title: 'Centre d\'aide',
+            onTap: () {
+              // TODO: Naviguer vers le centre d'aide
+            },
           ),
           _buildSettingItem(
             icon: Icons.privacy_tip_outlined,
-            title: 'Privacy Policy',
-            onTap: () {},
+            title: 'Politique de confidentialité',
+            onTap: () {
+              // TODO: Naviguer vers la politique de confidentialité
+            },
+          ),
+          const SizedBox(height: 24),
+          _buildSettingItem(
+            icon: Icons.logout,
+            title: 'Déconnexion',
+            onTap: () async {
+              await authViewModel.signOut();
+              if (context.mounted) {
+                Navigator.of(context).pushReplacementNamed('/');
+              }
+            },
           ),
         ],
       ),
     );
   }
 
-  Widget _buildProfileCard() {
+  Widget _buildProfileCard(String userName, String userEmail, String? photoURL) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -94,26 +156,36 @@ class AccountPage extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 40,
-            backgroundImage: NetworkImage(
-              'https://randomuser.me/api/portraits/men/32.jpg',
-            ),
+            backgroundImage: photoURL != null
+                ? NetworkImage(photoURL)
+                : null,
             backgroundColor: Colors.brown.shade100,
+            child: photoURL == null
+                ? Text(
+                    userName[0].toUpperCase(),
+                    style: const TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.brown,
+                    ),
+                  )
+                : null,
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Vasken Smith',
-                  style: TextStyle(
+                Text(
+                  userName,
+                  style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'vasken@example.com',
+                  userEmail,
                   style: TextStyle(
                     color: Colors.grey[600],
                     fontSize: 14,
@@ -130,7 +202,7 @@ class AccountPage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    'Gold Member',
+                    'Membre Gold',
                     style: TextStyle(
                       color: Colors.brown[700],
                       fontSize: 12,
@@ -143,7 +215,9 @@ class AccountPage extends StatelessWidget {
           ),
           IconButton(
             icon: const Icon(Icons.edit_outlined),
-            onPressed: () {},
+            onPressed: () {
+              // TODO: Naviguer vers la page d'édition du profil
+            },
             color: Colors.brown,
           ),
         ],
