@@ -1,7 +1,123 @@
+import 'package:coffee_shop/data/services/user_data_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-class PaymentMethodsPage extends StatelessWidget {
+class PaymentMethodsPage extends StatefulWidget {
   const PaymentMethodsPage({Key? key}) : super(key: key);
+
+  @override
+  State<PaymentMethodsPage> createState() => _PaymentMethodsPageState();
+}
+
+class _PaymentMethodsPageState extends State<PaymentMethodsPage> {
+  final TextEditingController cardNumberController = TextEditingController();
+  final TextEditingController expiryDateController = TextEditingController();
+  final TextEditingController cvvController = TextEditingController();
+
+  @override
+  void dispose() {
+    cardNumberController.dispose();
+    expiryDateController.dispose();
+    cvvController.dispose();
+    super.dispose();
+  }
+
+  void _showAddPaymentMethodDialog(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Ajouter une carte', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: cardNumberController,
+                  decoration: InputDecoration(
+                    labelText: 'Numéro de carte',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: expiryDateController,
+                        decoration: InputDecoration(
+                          labelText: 'Date d\'expiration',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: TextFormField(
+                        controller: cvvController,
+                        decoration: InputDecoration(
+                          labelText: 'CVV',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        keyboardType: TextInputType.number,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      String cardNumber = cardNumberController.text.trim();
+                      String expiryDate = expiryDateController.text.trim();
+                      if (cardNumber.length < 4) return;
+                      String lastFourDigits = cardNumber.substring(cardNumber.length - 4);
+                      String cardType = cardNumber.startsWith('4') ? 'Visa' : 'Mastercard'; // Simple détection
+                      await UserDataService.addPaymentMethod(
+                        cardType: cardType,
+                        lastFourDigits: lastFourDigits,
+                        expiryDate: expiryDate,
+                        isDefault: false,
+                      );
+                      Navigator.pop(context);
+                      cardNumberController.clear();
+                      expiryDateController.clear();
+                      cvvController.clear();
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Carte ajoutée avec succès')),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.brown,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('Ajouter la carte', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -11,46 +127,37 @@ class PaymentMethodsPage extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
-            onPressed: () {
-              _showAddPaymentMethodDialog(context);
-            },
+            onPressed: () => _showAddPaymentMethodDialog(context),
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _buildPaymentMethodCard(
-            context,
-            cardType: 'Visa',
-            lastFourDigits: '4242',
-            expiryDate: '12/25',
-            isDefault: true,
-          ),
-          const SizedBox(height: 16),
-          _buildPaymentMethodCard(
-            context,
-            cardType: 'Mastercard',
-            lastFourDigits: '8888',
-            expiryDate: '09/24',
-            isDefault: false,
-          ),
-          const SizedBox(height: 24),
-          _buildSectionTitle('Autres méthodes de paiement'),
-          const SizedBox(height: 16),
-          _buildPaymentMethodTile(
-            context,
-            icon: Icons.account_balance,
-            title: 'Virement bancaire',
-            subtitle: 'Ajouter un compte bancaire',
-          ),
-          _buildPaymentMethodTile(
-            context,
-            icon: Icons.payment,
-            title: 'PayPal',
-            subtitle: 'Connecter votre compte PayPal',
-          ),
-        ],
+      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: UserDataService.paymentMethodsStream(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text('Aucune méthode de paiement enregistrée.'));
+          }
+          final cards = snapshot.data!.docs;
+          return ListView.separated(
+            padding: const EdgeInsets.all(16),
+            itemCount: cards.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 16),
+            itemBuilder: (context, index) {
+              final card = cards[index].data();
+              return _buildPaymentMethodCard(
+                context,
+                cardType: card['cardType'] ?? '',
+                lastFourDigits: card['lastFourDigits'] ?? '',
+                expiryDate: card['expiryDate'] ?? '',
+                isDefault: card['isDefault'] ?? false,
+                paymentMethodId: cards[index].id,
+              );
+            },
+          );
+        },
       ),
     );
   }
@@ -61,21 +168,22 @@ class PaymentMethodsPage extends StatelessWidget {
     required String lastFourDigits,
     required String expiryDate,
     required bool isDefault,
+    required String paymentMethodId,
   }) {
     return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
         gradient: LinearGradient(
-          colors: [
-            Colors.brown.shade700,
-            Colors.brown.shade900,
-          ],
+          colors: cardType == 'Visa'
+              ? [Colors.blue.shade700, Colors.blue.shade400]
+              : [Colors.deepOrange.shade400, Colors.orange.shade200],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withOpacity(0.15),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -84,60 +192,53 @@ class PaymentMethodsPage extends StatelessWidget {
       child: Stack(
         children: [
           Positioned(
-            right: 16,
-            top: 16,
-            child: Icon(
-              cardType == 'Visa' ? Icons.credit_card : Icons.credit_card_outlined,
-              color: Colors.white.withOpacity(0.5),
-              size: 40,
-            ),
+            right: 24,
+            top: 24,
+            child: cardType == 'Visa'
+                ? Image.asset('assets/visa.png', width: 48)
+                : Image.asset('assets/mastercard.png', width: 48),
           ),
           Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       cardType,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 20,
+                        fontSize: 22,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     if (isDefault)
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
+                        margin: const EdgeInsets.only(left: 12),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Text(
                           'Par défaut',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                          ),
+                          style: TextStyle(color: Colors.white, fontSize: 12),
                         ),
                       ),
                   ],
                 ),
-                const SizedBox(height: 30),
+                const SizedBox(height: 32),
                 Text(
-                  '•••• •••• •••• $lastFourDigits',
+                  '••••  ••••  ••••  $lastFourDigits',
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 18,
+                    fontSize: 22,
                     letterSpacing: 2,
+                    fontFamily: 'monospace',
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -145,28 +246,19 @@ class PaymentMethodsPage extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Date d\'expiration',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
-                          ),
+                          'Expiration',
+                          style: TextStyle(color: Colors.white70, fontSize: 12),
                         ),
                         Text(
                           expiryDate,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                          ),
+                          style: const TextStyle(color: Colors.white, fontSize: 16),
                         ),
                       ],
                     ),
                     IconButton(
-                      icon: const Icon(
-                        Icons.delete_outline,
-                        color: Colors.white70,
-                      ),
+                      icon: const Icon(Icons.delete_outline, color: Colors.white70),
                       onPressed: () {
-                        _showDeleteConfirmationDialog(context);
+                        _showDeleteConfirmationDialog(context, paymentMethodId);
                       },
                     ),
                   ],
@@ -222,109 +314,12 @@ class PaymentMethodsPage extends StatelessWidget {
     );
   }
 
-  void _showAddPaymentMethodDialog(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(20),
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Ajouter une carte',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextFormField(
-                decoration: InputDecoration(
-                  labelText: 'Numéro de carte',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      decoration: InputDecoration(
-                        labelText: 'Date d\'expiration',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextFormField(
-                      decoration: InputDecoration(
-                        labelText: 'CVV',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.brown,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'Ajouter la carte',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showDeleteConfirmationDialog(BuildContext context) {
+  void _showDeleteConfirmationDialog(BuildContext context, String paymentMethodId) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Supprimer la carte'),
-        content: const Text(
-          'Êtes-vous sûr de vouloir supprimer cette carte ?',
-        ),
+        content: const Text('Êtes-vous sûr de vouloir supprimer cette carte ?'),
         actions: [
           TextButton(
             onPressed: () {
@@ -333,9 +328,14 @@ class PaymentMethodsPage extends StatelessWidget {
             child: const Text('Annuler'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
-              // TODO: Implémenter la suppression de la carte
+              await UserDataService.deletePaymentMethod(paymentMethodId);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Carte supprimée avec succès')),
+                );
+              }
             },
             child: const Text(
               'Supprimer',
