@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthRepository {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
@@ -33,6 +34,13 @@ class AuthRepository {
         email: email,
         password: password,
       );
+
+      // Enregistrer le rôle dans Firestore
+      await FirebaseFirestore.instance.collection('users').doc(credential.user!.uid).set({
+        'role': 'user',
+        'email': email,
+      });
+
       return credential.user;
     } on FirebaseAuthException catch (e) {
       throw AuthException(e.message ?? 'Email/Password signup failed');
@@ -81,4 +89,4 @@ class AuthRepository {
 class AuthException implements Exception {
   final String message;
   AuthException(this.message);
-} 
+}

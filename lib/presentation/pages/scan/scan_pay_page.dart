@@ -217,19 +217,7 @@ class ScanPayPage extends StatelessWidget {
             },
           ),
         ),
-        Container(
-          padding: const EdgeInsets.all(16.0),
-          color: Colors.brown,
-          child: Center(
-            child: Text(
-              'Scannez un code QR',
-              style: GoogleFonts.poppins(
-                color: Colors.white,
-                fontSize: 18,
-              ),
-            ),
-          ),
-        ),
+       
       ],
     );
   }

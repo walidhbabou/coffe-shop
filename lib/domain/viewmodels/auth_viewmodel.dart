@@ -1,6 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:coffee_shop/data/repositories/auth_repository.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:coffee_shop/core/constants/app_routes.dart';
 
 class AuthViewModel with ChangeNotifier {
   AuthRepository? _authRepository;
@@ -8,10 +10,16 @@ class AuthViewModel with ChangeNotifier {
   String? _errorMessage;
   User? _currentUser;
 
+  String? _userRole;
+  String? get userRole => _userRole;
+
   void setRepository(AuthRepository repository) {
     _authRepository = repository;
     _authRepository?.authStateChanges.listen((user) {
       _currentUser = user;
+      if (user != null) {
+        fetchUserRole();
+      }
       notifyListeners();
     });
   }
@@ -95,6 +103,23 @@ class AuthViewModel with ChangeNotifier {
       _errorMessage = e.message;
     } finally {
       _setLoading(false);
+    }
+  }
+
+  Future<void> fetchUserRole() async {
+    final user = _currentUser;
+    if (user != null) {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      _userRole = doc.data()?['role'] ?? 'user';
+      notifyListeners();
+    }
+  }
+
+  String getInitialRoute() {
+    if (_currentUser == null) {
+      return AppRoutes.welcome;
+    } else {
+      return _userRole == 'admin' ? AppRoutes.adminDashboard : AppRoutes.userHome;
     }
   }
 

@@ -8,6 +8,9 @@ import 'package:coffee_shop/domain/viewmodels/order_viewmodel.dart';
 import '../../pages/order/cart_page.dart';
 import '../../widgets/favorite_drink_card.dart';
 import '../../../data/models/payment_info.dart';
+import '../auth/login_page.dart';
+import '../admin/admin_dashboard.dart';
+import '../user/user_home_page.dart';
 
 class ProfileHomePage extends StatefulWidget {
   final PaymentInfo? pendingPaymentInfo;
@@ -40,121 +43,127 @@ class _ProfileHomePageState extends State<ProfileHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final orderViewModel = context.watch<OrderViewModel>();
-    final authViewModel = context.watch<AuthViewModel>();
-    if (authViewModel.currentUser == null && !_isLoggingOut) {
-      _isLoggingOut = true;
-      Future.microtask(() {
-        if (mounted) {
-          Navigator.of(context)
-              .pushNamedAndRemoveUntil('/login', (route) => false);
-        }
-      });
-    }
-    final favorites = orderViewModel.favorites;
-    final List<Widget> _pages = [
-      _HomeContent(),
-      ScanPayPage(
-        paymentInfo: PaymentInfo(
-          transactionId: _pendingPaymentInfo?.transactionId ?? 'DEMO',
-          total: _pendingPaymentInfo?.total ?? 0.0,
-          date: _pendingPaymentInfo?.date ?? '2024-01-01',
-          time: _pendingPaymentInfo?.time ?? '00:00',
+    final auth = context.watch<AuthViewModel>();
+
+    if (!auth.isAuthenticated) {
+      return const LoginPage();
+    } else if (auth.userRole == 'admin') {
+      return const AdminDashboard();
+    } else {
+      final orderViewModel = context.watch<OrderViewModel>();
+      final authViewModel = context.watch<AuthViewModel>();
+      if (authViewModel.currentUser == null && !_isLoggingOut) {
+        _isLoggingOut = true;
+        Future.microtask(() {
+          if (mounted) {
+            Navigator.of(context)
+                .pushNamedAndRemoveUntil('/login', (route) => false);
+          }
+        });
+      }
+      final List<Widget> _pages = [
+        const _HomeContent(),
+        ScanPayPage(
+          paymentInfo: PaymentInfo(
+            transactionId: _pendingPaymentInfo?.transactionId ?? 'DEMO',
+            total: _pendingPaymentInfo?.total ?? 0.0,
+            date: _pendingPaymentInfo?.date ?? '2024-01-01',
+            time: _pendingPaymentInfo?.time ?? '00:00',
+          ),
+          showOnlyInfo: _pendingPaymentInfo != null,
         ),
-        showOnlyInfo: _pendingPaymentInfo != null,
-      ),
-      const order.OrderPage(),
-      const AccountPage(),
-    ];
-    return Scaffold(
-      backgroundColor: const Color(0xFFF7F4EF),
-      body: Stack(
-        children: [
-          _pages[_selectedIndex],
-          if (_selectedIndex ==
-              0) // Affiche le bouton seulement sur l'accueil du profil
-            Positioned(
-              top: 36,
-              right: 24,
-              child: IconButton(
-                icon: const Icon(Icons.logout, color: Colors.brown, size: 28),
-                tooltip: 'Déconnexion',
-                onPressed: () async {
-                  await context.read<AuthViewModel>().signOut();
-                  if (mounted) {
-                    Navigator.of(context)
-                        .pushNamedAndRemoveUntil('/login', (route) => false);
-                  }
-                },
-              ),
-            ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.brown,
-        onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => CartPage(onPay: showPaymentInfo)),
-          );
-        },
-        child: Stack(
-          alignment: Alignment.center,
+        const order.OrderPage(),
+        const AccountPage(),
+      ];
+      return Scaffold(
+        backgroundColor: const Color(0xFFF7F4EF),
+        body: Stack(
           children: [
-            const Icon(Icons.shopping_bag_outlined, color: Colors.white),
-            if (orderViewModel.cart.isNotEmpty)
+            _pages[_selectedIndex],
+            if (_selectedIndex == 0)
               Positioned(
-                right: 0,
-                top: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(2),
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Text(
-                    orderViewModel.cart.length.toString(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                top: 36,
+                right: 24,
+                child: IconButton(
+                  icon: const Icon(Icons.logout, color: Colors.brown, size: 28),
+                  tooltip: 'Déconnexion',
+                  onPressed: () async {
+                    await context.read<AuthViewModel>().signOut();
+                    if (mounted) {
+                      Navigator.of(context)
+                          .pushNamedAndRemoveUntil('/login', (route) => false);
+                    }
+                  },
                 ),
               ),
           ],
         ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-            if (index != 1) _pendingPaymentInfo = null;
-          });
-        },
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.brown,
-        unselectedItemColor: Colors.black38,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
+        floatingActionButton: FloatingActionButton(
+          backgroundColor: Colors.brown,
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => CartPage(onPay: showPaymentInfo)),
+            );
+          },
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              const Icon(Icons.shopping_bag_outlined, color: Colors.white),
+              if (orderViewModel.cart.isNotEmpty)
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      orderViewModel.cart.length.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.qr_code_scanner),
-            label: 'Scan / Pay',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.coffee),
-            label: 'Order',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            label: 'Account',
-          ),
-        ],
-      ),
-    );
+        ),
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: _selectedIndex,
+          onTap: (index) {
+            setState(() {
+              _selectedIndex = index;
+              if (index != 1) _pendingPaymentInfo = null;
+            });
+          },
+          type: BottomNavigationBarType.fixed,
+          selectedItemColor: Colors.brown,
+          unselectedItemColor: Colors.black38,
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.qr_code_scanner),
+              label: 'Scan / Pay',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.coffee),
+              label: 'Order',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline),
+              label: 'Account',
+            ),
+          ],
+        ),
+      );
+    }
   }
 }
 
