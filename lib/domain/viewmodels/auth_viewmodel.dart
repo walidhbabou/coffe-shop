@@ -3,19 +3,34 @@ import 'package:flutter/foundation.dart';
 import 'package:coffee_shop/data/repositories/auth_repository.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:coffee_shop/core/constants/app_routes.dart';
+import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
 
-class AuthViewModel with ChangeNotifier {
+class AuthViewModel extends ChangeNotifier {
   AuthRepository? _authRepository;
   bool _isLoading = false;
   String? _errorMessage;
   User? _currentUser;
   String? _userRole;
   Map<String, dynamic>? _userData;
+  final AuthService _authService = AuthService();
 
   String? get userRole => _userRole;
   Map<String, dynamic>? get userData => _userData;
   bool get isAdmin => _userRole == 'admin';
   bool get isUser => _userRole == 'user';
+
+  AuthViewModel() {
+    // Initialize current user
+    _currentUser = _authService.currentUser;
+    
+    // Listen to auth state changes
+    _authService.authStateChanges.listen((User? user) {
+      _currentUser = user;
+      notifyListeners();
+      debugPrint('Auth state changed: ${user?.email ?? 'null'}');
+    });
+  }
 
   void setRepository(AuthRepository repository) {
     _authRepository = repository;
@@ -38,66 +53,63 @@ class AuthViewModel with ChangeNotifier {
   User? get currentUser => _currentUser;
   bool get isAuthenticated => _userData != null;
   bool get isEmailVerified => false;
+  String? get userId => _currentUser?.uid ?? _userData?['uid'];
+  bool get isLoggedIn => _currentUser != null;
 
-  Future<void> signInWithEmailAndPassword({
-    required String email,
-    required String password,
-  }) async {
+  Future<bool> signIn(String email, String password) async {
     _setLoading(true);
-    _errorMessage = null;
-    _userData = null;
+    _clearError();
+    
     try {
-      print('Tentative de connexion avec email (via ViewModel): $email');
-      
-      if (_authRepository == null) {
-        throw AuthException('Le service d\'authentification n\'est pas initialisé');
+      final userCredential = await _authService.signInWithEmailAndPassword(email, password);
+      if (userCredential != null) {
+        _currentUser = userCredential.user;
+        notifyListeners();
+        return true;
       }
-
-      final userDataFromFirestore = await _authRepository!.signInWithFirestore(
-        email: email.trim(),
-        password: password,
-      );
-      
-      if (userDataFromFirestore != null) {
-        print('Connexion réussie (via ViewModel) pour: $email');
-        _userData = userDataFromFirestore;
-        _userRole = userDataFromFirestore['role'] ?? 'user';
-        print('ViewModel - isAuthenticated: $isAuthenticated, userRole: $_userRole');
-      } else {
-        throw AuthException('Échec de la connexion');
-      }
-    } on AuthException catch (e) {
-      _errorMessage = e.message;
-      print('Erreur de connexion (via ViewModel): ${e.message}');
+      _setError('Failed to sign in');
+      return false;
     } catch (e) {
-      _errorMessage = 'Une erreur inattendue est survenue lors de la connexion';
-      print('Erreur inattendue (via ViewModel): $e');
+      _setError('Sign in error: $e');
+      return false;
     } finally {
       _setLoading(false);
-      notifyListeners();
     }
   }
 
-  Future<void> signUpWithEmailAndPassword({
-    required String email,
-    required String password,
-  }) async {
+  Future<bool> register(String email, String password) async {
     _setLoading(true);
-    _errorMessage = null;
+    _clearError();
+    
     try {
-      await _authRepository?.signUpWithEmailAndPassword(email: email, password: password);
-    } on UnimplementedError {
-      _errorMessage = 'L\'inscription par email/mot de passe n\'est pas encore implémentée';
-      print(_errorMessage);
-    } on AuthException catch (e) {
-      _errorMessage = e.message;
-      print('Erreur d\'inscription (via ViewModel): ${e.message}');
+      final userCredential = await _authService.registerWithEmailAndPassword(email, password);
+      if (userCredential != null) {
+        _currentUser = userCredential.user;
+        notifyListeners();
+        return true;
+      }
+      _setError('Failed to register');
+      return false;
     } catch (e) {
-      _errorMessage = 'Une erreur inattendue est survenue lors de l\'inscription';
-      print('Erreur inattendue (via ViewModel): $e');
+      _setError('Registration error: $e');
+      return false;
     } finally {
       _setLoading(false);
+    }
+  }
+
+  Future<void> signOut() async {
+    _setLoading(true);
+    try {
+      await _authService.signOut();
+      _currentUser = null;
+      _userRole = null;
+      _userData = null;
       notifyListeners();
+    } catch (e) {
+      _setError('Sign out error: $e');
+    } finally {
+      _setLoading(false);
     }
   }
 
@@ -120,27 +132,6 @@ class AuthViewModel with ChangeNotifier {
     } catch (e) {
       _errorMessage = 'Une erreur inattendue est survenue lors de la connexion Google';
       print('Erreur inattendue (via ViewModel): $e');
-    } finally {
-      _setLoading(false);
-      notifyListeners();
-    }
-  }
-
-  Future<void> signOut() async {
-    _setLoading(true);
-    _errorMessage = null;
-    try {
-      await _authRepository?.signOut();
-      _currentUser = null;
-      _userRole = null;
-      _userData = null;
-      print('Déconnexion réussie (via ViewModel)');
-    } on AuthException catch (e) {
-      _errorMessage = e.message;
-      print('Erreur lors de la déconnexion (via ViewModel): ${e.message}');
-    } catch (e) {
-      _errorMessage = 'Une erreur inattendue est survenue lors de la déconnexion';
-      print('Erreur inattendue lors de la déconnexion (via ViewModel): $e');
     } finally {
       _setLoading(false);
       notifyListeners();
@@ -219,8 +210,8 @@ class AuthViewModel with ChangeNotifier {
 
   String getInitialRoute() {
     if (_userData != null) {
-      print('getInitialRoute: authenticated, userRole: $_userRole, navigating to: ${_userRole == 'admin' ? AppRoutes.adminDashboard : AppRoutes.userHome}');
-      return _userRole == 'admin' ? AppRoutes.adminDashboard : AppRoutes.userHome;
+      print('getInitialRoute: authenticated, userRole: $_userRole, navigating to: ${_userRole == 'admin' ? AppRoutes.profile : AppRoutes.userHome}');
+      return _userRole == 'admin' ? AppRoutes.profile : AppRoutes.userHome;
     } else {
       print('getInitialRoute: not authenticated, navigating to: ${AppRoutes.welcome}');
       return AppRoutes.welcome;
@@ -229,10 +220,41 @@ class AuthViewModel with ChangeNotifier {
 
   void _setLoading(bool value) {
     _isLoading = value;
+    notifyListeners();
   }
 
   String? getUserUid() {
     return _currentUser?.uid;
+  }
+
+  void _setError(String error) {
+    _errorMessage = error;
+    notifyListeners();
+  }
+
+  void _clearError() {
+    _errorMessage = null;
+  }
+
+  Future<bool> signUp(String email, String password) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final userCredential = await _authService.registerWithEmailAndPassword(email, password);
+      if (userCredential != null) {
+        _currentUser = userCredential.user;
+        notifyListeners();
+        return true;
+      }
+      _setError('Failed to register');
+      return false;
+    } catch (e) {
+      _setError('Registration error: $e');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
   }
 }
 

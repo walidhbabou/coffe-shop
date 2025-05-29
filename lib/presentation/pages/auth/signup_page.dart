@@ -296,11 +296,11 @@ class _SignupPageState extends State<SignupPage> with SingleTickerProviderStateM
                                                     HapticFeedback.mediumImpact();
                                                     
                                                     if (_formKey.currentState!.validate()) {
-                                                      await authViewModel.signUpWithEmailAndPassword(
-                                                        email: _emailController.text.trim(),
-                                                        password: _passwordController.text.trim(),
+                                                      await authViewModel.signUp(
+                                                        _emailController.text.trim(),
+                                                        _passwordController.text.trim(),
                                                       );
-                                                      if (authViewModel.isAuthenticated &&
+                                                      if (authViewModel.isLoggedIn &&
                                                           context.mounted) {
                                                         Navigator.of(context)
                                                             .pushReplacementNamed('/login');

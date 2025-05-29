@@ -53,6 +53,10 @@ class UserDataService {
         'total': total,
       };
       final ref = _firestore.collection('users').doc(user.uid);
+
+      // Ensure the 'orders' field exists as an array before adding to it.
+      await ref.set({'orders': []}, SetOptions(merge: true));
+
       await ref.update({
         'orders': FieldValue.arrayUnion([order])
       });

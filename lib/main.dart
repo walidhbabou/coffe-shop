@@ -5,8 +5,11 @@ import 'package:provider/provider.dart';
 import 'package:coffee_shop/data/repositories/auth_repository.dart';
 import 'package:coffee_shop/domain/viewmodels/auth_viewmodel.dart';
 import 'package:coffee_shop/domain/viewmodels/order_viewmodel.dart';
+import 'package:coffee_shop/domain/viewmodels/invoice_viewmodel.dart';
 import 'firebase_options.dart';
 import 'package:coffee_shop/data/services/init_service.dart';
+import 'package:coffee_shop/presentation/widgets/auth_wrapper.dart';
+import 'package:coffee_shop/presentation/pages/admin/admin_routes.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,6 +25,7 @@ void main() async {
     // Créer le compte admin si nécessaire
     await createAdminIfNotExists();
     
+    // Initialize AuthViewModel with repository
     final authRepository = AuthRepository();
     final authViewModel = AuthViewModel();
     authViewModel.setRepository(authRepository);
@@ -29,9 +33,12 @@ void main() async {
     runApp(
       MultiProvider(
         providers: [
-          ChangeNotifierProvider<AuthViewModel>.value(value: authViewModel),
+          ChangeNotifierProvider<AuthViewModel>(create: (_) => authViewModel),
           ChangeNotifierProvider<OrderViewModel>(
             create: (_) => OrderViewModel(),
+          ),
+          ChangeNotifierProvider<InvoiceViewModel>(
+            create: (context) => InvoiceViewModel(),
           ),
         ],
         child: const MyApp(),
@@ -90,8 +97,6 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final authViewModel = Provider.of<AuthViewModel>(context, listen: false);
-    
     return MaterialApp(
       title: 'Coffee Shop',
       debugShowCheckedModeBanner: false,
@@ -100,38 +105,12 @@ class MyApp extends StatelessWidget {
         visualDensity: VisualDensity.adaptivePlatformDensity,
         useMaterial3: true,
       ),
+      home: const AuthWrapper(),
+      routes: {
+        ...AppRoutes.generateRoutes(),
+        ...AdminRoutes.getRoutes(),
+      },
       onGenerateRoute: AppRoutes.generateRoute,
-      initialRoute: authViewModel.getInitialRoute(),
-    );
-  }
-}
-
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Coffee Shop'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await context.read<AuthViewModel>().signOut();
-              if (context.mounted) {
-                Navigator.of(context).pushNamedAndRemoveUntil(
-                  AppRoutes.welcome,
-                  (route) => false,
-                );
-              }
-            },
-          ),
-        ],
-      ),
-      body: const Center(
-        child: Text('Bienvenue dans Coffee Shop!'),
-      ),
     );
   }
 }

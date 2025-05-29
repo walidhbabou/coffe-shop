@@ -5,10 +5,14 @@ import '../../../data/models/drink.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../data/models/payment_info.dart';
 import 'cart_page.dart';
-import '../Scan/scan_pay_page.dart';
+// import '../Scan/scan_pay_page.dart'; // Removed for user flow
 import '../user/user_home_page.dart';
-import 'payment_page.dart';
-import '../scan/qr_transaction_page.dart';
+// import 'payment_page.dart'; // Might not be needed for user flow anymore
+// import '../scan/qr_transaction_page.dart'; // Might not be needed
+import 'package:firebase_auth/firebase_auth.dart'; // Import Firebase Auth
+import '../../../services/invoice_service.dart'; // Import InvoiceService
+import '../../../data/models/invoice_model.dart'; // Import Invoice model
+import '../../../domain/viewmodels/auth_viewmodel.dart'; // Import AuthViewModel
 
 class CartPage extends StatefulWidget {
   final void Function(PaymentInfo)? onPay;
@@ -22,22 +26,40 @@ class _CartPageState extends State<CartPage> {
   int orderStep = 0; // 0: modifiable, 1: validé, 2: prêt à payer
   bool isValidated = false;
   bool isPayEnabled = false;
-  String transactionId = 'V278439380';
-  String date = 'Nov 21 2023';
-  String time = '03:04 PM';
+  String transactionId = 'V'+DateTime.now().millisecondsSinceEpoch.toString(); // Generate dynamic transaction ID
+  String date = '';
+  String time = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _updateDateTime();
+  }
+
+  void _updateDateTime() {
+    final now = DateTime.now();
+    date = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+    time = "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}";
+  }
 
   @override
   Widget build(BuildContext context) {
     final orderViewModel = context.watch<OrderViewModel>();
+    final authViewModel = context.watch<AuthViewModel>();
     final total = orderViewModel.cartEntries.fold<double>(
         0, (sum, entry) => sum + (entry.key.price ?? 0) * entry.value);
     final isLocked = orderStep >= 2;
-    // Date et heure actuelles formatées
-    final now = DateTime.now();
-    final formattedDate =
-        "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
-    final formattedTime =
-        "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}";
+
+    // Enhanced debugging (Optional - can be removed later)
+    debugPrint('=== CartPage Debug Info ===');
+    debugPrint('orderStep: $orderStep');
+    debugPrint('isPayEnabled: $isPayEnabled');
+    debugPrint('authViewModel.currentUser: ${authViewModel.currentUser}');
+    debugPrint('authViewModel.isLoggedIn: ${authViewModel.isLoggedIn}');
+    debugPrint('Firebase current user: ${FirebaseAuth.instance.currentUser}');
+    debugPrint('Pay button enabled: ${isPayEnabled && authViewModel.isLoggedIn}');
+    debugPrint('========================');
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Votre Panier', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
@@ -310,33 +332,148 @@ class _CartPageState extends State<CartPage> {
                         ),
                         const SizedBox(height: 24),
                         // Bouton Pay (remplace Review Receipt)
-                        ElevatedButton(
-                          onPressed: isPayEnabled
-                              ? () {
-                                  final paymentInfo = PaymentInfo(
-                                    transactionId: transactionId,
-                                    total: total,
-                                    date: formattedDate,
-                                    time: formattedTime,
-                                  );
-                                  orderViewModel.clearCart();
-                                  if (widget.onPay != null) {
-                                    widget.onPay!(paymentInfo);
-                                  }
-                                  Navigator.of(context).pop();
-                                }
-                              : null,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF4E342E),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16)),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            minimumSize: Size(
-                                MediaQuery.of(context).size.width * 0.7, 48),
+                        // Integration of provided Pay button enhancements and invoice saving logic
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(horizontal: 0), // Adjusted padding
+                          child: Column(
+                            children: [
+                              // Debug info card (remove in production)
+                              // if (kDebugMode) // kDebugMode requires import 'package:flutter/foundation.dart';
+                              //   Card(
+                              //     color: Colors.yellow[100],
+                              //     child: Padding(
+                              //       padding: const EdgeInsets.all(8.0),
+                              //       child: Column(
+                              //         crossAxisAlignment: CrossAxisAlignment.start,
+                              //         children: [
+                              //           Text('Debug Info:', style: TextStyle(fontWeight: FontWeight.bold)),
+                              //           Text('Order Step: $orderStep'),
+                              //           Text('Pay Enabled: $isPayEnabled'),
+                              //           Text('User Logged In: ${authViewModel.isLoggedIn}'),
+                              //           Text('Current User: ${authViewModel.currentUser?.email ?? 'null'}'),
+                              //           Text('Button Should Be Enabled: ${isPayEnabled && authViewModel.isLoggedIn}'),
+                              //         ],
+                              //       ),
+                              //     ),
+                              //   ),
+                              const SizedBox(height: 16),
+
+                              // Pay button with better feedback
+                              ElevatedButton(
+                                onPressed: (isPayEnabled && authViewModel.isLoggedIn)
+                                    ? () async {
+                                        // Your existing payment logic here
+                                        // final paymentInfo = PaymentInfo(
+                                        //   transactionId: transactionId,
+                                        //   total: total,
+                                        //   date: formattedDate,
+                                        //   time: formattedTime,
+                                        // );
+
+                                        // Get current user ID
+                                        final userId = authViewModel.currentUser?.uid;
+                                        if (userId == null) {
+                                           print('Error: User not logged in. Cannot save invoice.');
+                                           // Show an error to the user
+                                           ScaffoldMessenger.of(context).showSnackBar(
+                                             const SnackBar(
+                                               content: Text('Veuillez vous connecter pour passer commande.'),
+                                               backgroundColor: Colors.red,
+                                             ),
+                                           );
+                                           return;
+                                        }
+
+                                        // Get cart items and total
+                                        final cartItems = orderViewModel.cartEntries.map((entry) => {
+                                          'drinkId': entry.key.id,
+                                          'quantity': entry.value,
+                                          'price': entry.key.price,
+                                          'name': entry.key.name,
+                                        }).toList();
+
+                                        // Create Invoice object
+                                        final invoice = Invoice(
+                                          userId: userId,
+                                          transactionId: transactionId, // Use the generated transactionId
+                                          total: total,
+                                          date: date, // Use the formatted date
+                                          time: time, // Use the formatted time
+                                          items: cartItems,
+                                          createdAt: DateTime.now(),
+                                          status: 'pending', // Set initial status
+                                        );
+
+                                        try {
+                                          // Save invoice to Firestore
+                                          final invoiceId = await InvoiceService().createInvoice(invoice);
+                                          print('Invoice saved with ID: $invoiceId');
+
+                                          // Create PaymentInfo object to pass to ScanPayPage
+                                          final paymentInfo = PaymentInfo(
+                                             transactionId: transactionId,
+                                             total: total,
+                                             date: date,
+                                             time: time,
+                                             userId: userId, // Pass userId
+                                             invoiceId: invoiceId, // Pass the created invoice ID
+                                             items: cartItems, // Pass cart items
+                                          );
+
+                                          // Navigate to ScanPayPage, passing paymentInfo
+                                          Navigator.of(context).pushNamed('/scan_pay', arguments: paymentInfo);
+
+                                        } catch (e) {
+                                           print('Error saving invoice: $e');
+                                           // Show an error to the user
+                                           ScaffoldMessenger.of(context).showSnackBar(
+                                             SnackBar(
+                                               content: Text('Erreur lors de l\'enregistrement de la facture: ${e.toString()}'),
+                                               backgroundColor: Colors.red,
+                                             ),
+                                           );
+                                        }
+                                      }
+                                    : null,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF4E342E),
+                                  disabledBackgroundColor: Colors.grey[300],
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16)),
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  minimumSize: Size(MediaQuery.of(context).size.width * 0.7, 48), // Adjusted size
+                                ),
+                                child: Text(
+                                  _getPayButtonText(authViewModel.isLoggedIn, isPayEnabled, orderViewModel.cartEntries.isNotEmpty), // Pass cart empty state
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 16,
+                                    color: (isPayEnabled && authViewModel.isLoggedIn) ? Colors.white : Colors.grey[600],
+                                  ),
+                                ),
+                              ),
+
+                              // Login prompt if not logged in
+                              if (!authViewModel.isLoggedIn)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8.0),
+                                  child: TextButton(
+                                    onPressed: () {
+                                      // Navigate to login page
+                                      // Use pushNamed to keep CartPage in stack, or pushReplacementNamed if desired
+                                      Navigator.pushNamed(context, '/login');
+                                    },
+                                    child: Text(
+                                      'Se connecter pour payer',
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.brown,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
-                          child: Text('Pay',
-                              style: GoogleFonts.poppins(
-                                  fontSize: 16, color: Colors.white)),
                         ),
                       ],
                     ),
@@ -389,5 +526,18 @@ class _CartPageState extends State<CartPage> {
         ),
       ],
     );
+  }
+
+   String _getPayButtonText(bool isLoggedIn, bool isPayEnabled, bool isCartEmpty) {
+    if (isCartEmpty) {
+      return 'Payer facture';
+    }
+    if (!isLoggedIn) {
+      return 'Connectez-vous pour payer';
+    }
+    if (!isPayEnabled) {
+      return 'Validez votre commande d\'abord';
+    }
+    return 'Payer';
   }
 }

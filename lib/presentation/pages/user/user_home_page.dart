@@ -10,6 +10,10 @@ import '../../widgets/favorite_drink_card.dart';
 import '../../../data/models/payment_info.dart';
 import '../auth/login_page.dart';
 import '../admin/admin_dashboard.dart';
+import '../../../core/constants/app_routes.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../../services/invoice_service.dart';
+import '../../../data/models/invoice_model.dart';
 
 class UserHomePage extends StatefulWidget {
   final PaymentInfo? pendingPaymentInfo;
@@ -23,6 +27,8 @@ class _UserHomePageState extends State<UserHomePage> {
   int _selectedIndex = 0;
   PaymentInfo? _pendingPaymentInfo;
   bool _isLoggingOut = false;
+  List<Invoice> _recentInvoices = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -31,6 +37,7 @@ class _UserHomePageState extends State<UserHomePage> {
     if (_pendingPaymentInfo != null) {
       _selectedIndex = 1; // Aller directement à ScanPayPage
     }
+    _loadRecentInvoices();
   }
 
   void showPaymentInfo(PaymentInfo info) {
@@ -40,6 +47,23 @@ class _UserHomePageState extends State<UserHomePage> {
     });
   }
 
+  Future<void> _loadRecentInvoices() async {
+    setState(() => _isLoading = true);
+    try {
+      final userId = context.read<AuthViewModel>().currentUser?.uid;
+      if (userId != null) {
+        final invoices = await InvoiceService().getRecentInvoices(userId, limit: 5);
+        setState(() {
+          _recentInvoices = invoices;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading recent invoices: $e');
+      setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final orderViewModel = context.watch<OrderViewModel>();
@@ -47,13 +71,15 @@ class _UserHomePageState extends State<UserHomePage> {
     final List<Widget> _pages = [
       const _HomeContent(),
       ScanPayPage(
-        paymentInfo: PaymentInfo(
-          transactionId: _pendingPaymentInfo?.transactionId ?? 'DEMO',
-          total: _pendingPaymentInfo?.total ?? 0.0,
-          date: _pendingPaymentInfo?.date ?? '2024-01-01',
-          time: _pendingPaymentInfo?.time ?? '00:00',
+        paymentInfo: _pendingPaymentInfo ?? PaymentInfo(
+          transactionId: 'DEMO',
+          total: 0.0,
+          date: DateTime.now().toString().split(' ')[0],
+          time: DateTime.now().toString().split(' ')[1].substring(0, 5),
+          userId: authViewModel.currentUser?.uid ?? '',
+          invoiceId: 'DEMO',
+          items: [],
         ),
-        showOnlyInfo: _pendingPaymentInfo != null,
       ),
       const order.OrderPage(),
       const AccountPage(),
@@ -75,7 +101,7 @@ class _UserHomePageState extends State<UserHomePage> {
                   if (mounted) {
                     print('User initiated logout. Navigating to /login...');
                     Navigator.of(context)
-                        .pushNamedAndRemoveUntil('/login', (route) => false);
+                        .pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
                   }
                 },
               ),

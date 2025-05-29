@@ -1,12 +1,19 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
+import 'package:crypto/crypto.dart';
+import 'dart:convert';
 
 Future<void> createAdminIfNotExists() async {
   const adminEmail = 'admin@coffeeapp.com';
-  const adminPassword = 'AdminPassword123'; // Mot de passe de l'admin
+  const adminPassword = 'AdminPassword123';
 
   try {
-    print('Vérification de l\'existence du compte admin...');
+    debugPrint('Vérification de l\'existence du compte admin...');
+    
+    // Hacher le mot de passe
+    final hashedPassword = sha256.convert(utf8.encode(adminPassword)).toString();
+    
     // Rechercher l'admin par email dans Firestore
     final existingAdminDoc = await FirebaseFirestore.instance
         .collection('users')
@@ -15,55 +22,49 @@ Future<void> createAdminIfNotExists() async {
         .get();
 
     if (existingAdminDoc.docs.isEmpty) {
+      debugPrint('Aucun compte admin trouvé dans Firestore. Création du document...');
 
-      print('Aucun compte admin trouvé dans Firestore. Création du document...');
-
- 
-      final adminDocRef = FirebaseFirestore.instance.collection('users').doc(adminEmail); // Utilisation de l'email comme ID de document
+      final adminDocRef = FirebaseFirestore.instance.collection('users').doc(adminEmail);
 
       await adminDocRef.set({
         'role': 'admin',
         'email': adminEmail,
-        'password': adminPassword, // TODO: HACHER CE MOT DE PASSE AVANT DE LE STOCKER !
+        'passwordHash': hashedPassword,
         'createdAt': FieldValue.serverTimestamp(),
         'lastLogin': FieldValue.serverTimestamp(),
         'isActive': true,
       });
-      print('Document admin créé avec succès dans Firestore.');
-      print('Email: $adminEmail');
-      print('Mot de passe (texte clair - À HACHER!): $adminPassword');
-
+      
+      debugPrint('Document admin créé avec succès dans Firestore.');
+      debugPrint('Email: $adminEmail');
     } else {
-      // Si un document admin existe, vérifier si le mot de passe est stocké et si le rôle est correct.
-      print('Document admin trouvé dans Firestore.');
+      debugPrint('Document admin trouvé dans Firestore.');
       final adminData = existingAdminDoc.docs.first.data();
       
-      // Mettre à jour si le rôle n'est pas 'admin' ou si le mot de passe n'est pas présent (pour la transition)
-      if (adminData['role'] != 'admin' || adminData['password'] == null) {
-         print('Le document admin existe mais nécessite une mise à jour (rôle/mot de passe).');
-         final adminDocRef = existingAdminDoc.docs.first.reference;
-         await adminDocRef.update({
-            'role': 'admin',
-            'password': adminPassword, // TODO: HACHER CE MOT DE PASSE LORS DE LA MISE À JOUR!
-            'lastLogin': FieldValue.serverTimestamp(), // Mettre à jour la dernière connexion
-            'isActive': true,
-         });
-          print('Document admin mis à jour dans Firestore.');
-          print('Email: $adminEmail');
-          print('Mot de passe (texte clair - À HACHER!): $adminPassword');
+      if (adminData['role'] != 'admin' || adminData['passwordHash'] == null) {
+        debugPrint('Le document admin existe mais nécessite une mise à jour (rôle/mot de passe).');
+        final adminDocRef = existingAdminDoc.docs.first.reference;
+        await adminDocRef.update({
+          'role': 'admin',
+          'passwordHash': hashedPassword,
+          'lastLogin': FieldValue.serverTimestamp(),
+          'isActive': true,
+        });
+        debugPrint('Document admin mis à jour dans Firestore.');
       } else {
-         print('Document admin déjà existant et correctement configuré.');
+        debugPrint('Document admin déjà existant et correctement configuré.');
       }
       
-       // Mettre à jour lastLogin même si pas de changement de rôle/mdp, juste pour l'activité
-       await existingAdminDoc.docs.first.reference.update({
-            'lastLogin': FieldValue.serverTimestamp(),
-         });
+      await existingAdminDoc.docs.first.reference.update({
+        'lastLogin': FieldValue.serverTimestamp(),
+      });
     }
 
   } on FirebaseException catch (e) {
-    print('Erreur Firebase lors de la création/vérification de l\'admin: ${e.code} - ${e.message}');
+    debugPrint('Erreur Firebase lors de la création/vérification de l\'admin: ${e.code} - ${e.message}');
+    rethrow; // Propager l'erreur pour la gestion au niveau supérieur
   } catch (e) {
-    print('Erreur inattendue lors de la création/vérification de l\'admin: $e');
+    debugPrint('Erreur inattendue lors de la création/vérification de l\'admin: $e');
+    rethrow; // Propager l'erreur pour la gestion au niveau supérieur
   }
 }

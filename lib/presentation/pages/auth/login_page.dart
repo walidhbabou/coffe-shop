@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:coffee_shop/domain/viewmodels/auth_viewmodel.dart';
 import 'dart:ui';
+import 'package:coffee_shop/core/constants/app_routes.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -61,20 +62,24 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
       
       try {
         final authViewModel = context.read<AuthViewModel>();
-        await authViewModel.signInWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
+        print('LoginPage: Attempting to sign in...');
+        final loginSuccess = await authViewModel.signIn(
+          _emailController.text.trim(),
+          _passwordController.text.trim(),
         );
+
+        print('LoginPage: Sign in attempt finished. Success: $loginSuccess');
+        print('LoginPage: authViewModel.isLoggedIn: ${authViewModel.isLoggedIn}');
         
         // Vérifier l'état d'authentification après la connexion
-        if (mounted && authViewModel.isAuthenticated) {
+        if (mounted && authViewModel.isLoggedIn) {
           // Navigation basée sur le rôle de l'utilisateur
           if (authViewModel.isAdmin) {
             print('Navigating to admin dashboard...');
-            Navigator.of(context).pushReplacementNamed('/admin_dashboard');
+            Navigator.of(context).pushReplacementNamed(AppRoutes.profile);
           } else {
             print('Navigating to user home...');
-            Navigator.of(context).pushReplacementNamed('/user_home');
+            Navigator.of(context).pushReplacementNamed(AppRoutes.userHome);
           }
         }
 

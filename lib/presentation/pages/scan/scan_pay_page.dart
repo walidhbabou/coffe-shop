@@ -2,33 +2,143 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../data/models/payment_info.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
+// import 'package:mobile_scanner/mobile_scanner.dart'; // Remove MobileScanner import
+import 'package:provider/provider.dart';
+import '../../../domain/viewmodels/order_viewmodel.dart';
+import '../../../domain/viewmodels/auth_viewmodel.dart';
+import '../../../services/invoice_service.dart';
+import '../../../data/models/invoice_model.dart';
+// import '../../../data/services/user_data_service.dart'; // UserDataService might not be needed here
 
-class ScanPayPage extends StatelessWidget {
-  final PaymentInfo? paymentInfo; // Rendre nullable pour l'état scan
-  final bool showOnlyInfo;
+// Import kDebugMode
+import 'package:flutter/foundation.dart';
+// import '../../user/user_home_page.dart'; // Already imported in CartPage, not needed here for navigation
+
+class ScanPayPage extends StatefulWidget {
+  final PaymentInfo? paymentInfo;
+  // final bool showOnlyInfo; // Remove this
 
   const ScanPayPage({
     Key? key,
-    this.paymentInfo, // Ne plus être required
-    this.showOnlyInfo = false,
+    this.paymentInfo,
+    // this.showOnlyInfo = false, // Remove this
   }) : super(key: key);
+
+  @override
+  State<ScanPayPage> createState() => _ScanPayPageState();
+}
+
+class _ScanPayPageState extends State<ScanPayPage> {
+  Invoice? _latestInvoice;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLatestInvoice();
+  }
+
+  Future<void> _loadLatestInvoice() async {
+    setState(() => _isLoading = true);
+    try {
+      final userId = context.read<AuthViewModel>().currentUser?.uid;
+      if (userId != null) {
+        final invoice = await InvoiceService().getLatestInvoice(userId);
+        setState(() {
+          _latestInvoice = invoice;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading latest invoice: $e');
+      setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F4EF),
       body: SafeArea(
-        child: showOnlyInfo && paymentInfo != null
-            ? _buildPaymentInfo(context) // Méthode pour afficher les infos de paiement
-            : _buildQrScanner(context), // Méthode pour afficher le scanner
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : widget.paymentInfo != null
+                ? _buildPaymentInfo(context)
+                : _buildLatestInvoiceOrEmpty(context),
       ),
     );
   }
 
-  Widget _buildPaymentInfo(BuildContext context) {
-    // Assurez-vous que paymentInfo n'est pas null ici
-    if (paymentInfo == null) return const SizedBox.shrink();
+  Widget _buildLatestInvoiceOrEmpty(BuildContext context) {
+    if (_latestInvoice == null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.shopping_cart_outlined,
+              size: 64,
+              color: Colors.brown,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Aucune facture en attente',
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.brown,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Votre panier est vide',
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                color: Colors.brown[300],
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.brown,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: Text(
+                'Retour',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Convertir Invoice en PaymentInfo pour réutiliser _buildPaymentInfo
+    final paymentInfo = PaymentInfo(
+      transactionId: _latestInvoice!.transactionId,
+      total: _latestInvoice!.total,
+      date: _latestInvoice!.date,
+      time: _latestInvoice!.time,
+      userId: _latestInvoice!.userId,
+      invoiceId: _latestInvoice!.id,
+      items: _latestInvoice!.items,
+    );
+
+    return _buildPaymentInfo(context, paymentInfo: paymentInfo);
+  }
+
+  Widget _buildPaymentInfo(BuildContext context, {PaymentInfo? paymentInfo}) {
+    final info = paymentInfo ?? widget.paymentInfo!;
+    final orderViewModel = context.read<OrderViewModel>();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -36,12 +146,23 @@ class ScanPayPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // En-tête avec bouton retour
-          Text(
-            'Détails de la facture',
-            style: GoogleFonts.poppins(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Détails de la facture',
+                style: GoogleFonts.poppins(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 32),
 
@@ -80,13 +201,13 @@ class ScanPayPage extends StatelessWidget {
                 const SizedBox(height: 24),
 
                 // Informations de transaction
-                _buildInfoRow('Transaction ID', paymentInfo!.transactionId),
-                _buildInfoRow('Date', paymentInfo!.date),
-                _buildInfoRow('Heure', paymentInfo!.time),
+                _buildInfoRow('Transaction ID', info.transactionId),
+                _buildInfoRow('Date', info.date),
+                _buildInfoRow('Heure', info.time),
                 const Divider(height: 32),
                 _buildInfoRow(
                   'Total',
-                  '${paymentInfo!.total.toStringAsFixed(2)} €',
+                  '${info.total.toStringAsFixed(2)} €',
                   isTotal: true,
                 ),
               ],
@@ -97,10 +218,9 @@ class ScanPayPage extends StatelessWidget {
           // QR Code
           Center(
             child: QrImageView(
-              data: 'Transaction: ${paymentInfo!.transactionId}\n'
-                  'Date: ${paymentInfo!.date}\n'
-                  'Heure: ${paymentInfo!.time}\n'
-                  'Total: ${paymentInfo!.total.toStringAsFixed(2)} €',
+              data: 'InvoiceID: ${info.invoiceId}\n'
+                  'Transaction: ${info.transactionId}\n'
+                  'Total: ${info.total.toStringAsFixed(2)} €',
               version: QrVersions.auto,
               size: 200.0,
               backgroundColor: Colors.white,
@@ -125,7 +245,7 @@ class ScanPayPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Instructions de paiement',
+                  'Instructions pour le caissier',
                   style: GoogleFonts.poppins(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -134,83 +254,94 @@ class ScanPayPage extends StatelessWidget {
                 const SizedBox(height: 16),
                 _buildInstructionStep(
                   '1',
-                  'Présentez votre code QR à la caisse',
+                  'Présentez ce code QR à la caisse',
                 ),
                 _buildInstructionStep(
                   '2',
-                  'Le caissier scannera votre code',
+                  'Le caissier scannera le code et confirmera le paiement',
                 ),
                 _buildInstructionStep(
                   '3',
-                  'Confirmez le paiement sur votre téléphone',
+                  'Votre commande sera alors marquée comme payée et votre panier sera vidé.',
                 ),
               ],
             ),
           ),
           const SizedBox(height: 32),
 
-          // Bouton de paiement (affiché seulement si showOnlyInfo est faux)
-          if (!showOnlyInfo)
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  // Logique de paiement à implémenter
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Logique de paiement à implémenter ici'),
-                      backgroundColor: Colors.brown,
-                    ),
-                  );
-                  // Après un paiement réussi, vous pourriez vouloir:
-                  // - Appeler un service de paiement
-                  // - Mettre à jour l'état de la commande
-                  // - Naviguer vers une page de confirmation
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4E342E),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+          // Button to simulate cashier confirmation
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () async {
+                try {
+                  // 1. Update invoice status
+                  await InvoiceService().updateInvoiceStatus(info.invoiceId, 'paid');
+                  
+                  // 2. Clear the user's cart
+                  orderViewModel.clearCart();
+                  
+                  // 3. Navigate back to user home
+                  if (mounted) {
+                    Navigator.of(context).pushReplacementNamed('/user_home');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Paiement confirmé et panier vidé!'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Erreur lors de la confirmation du paiement: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF5B8C6A),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: Text(
-                  'Payer maintenant',
-                  style: GoogleFonts.poppins(
-                    fontSize: 18,
-                    color: Colors.white,
-                  ),
+              ),
+              child: Text(
+                'Confirmer le paiement (pour test)',
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  color: Colors.white,
                 ),
               ),
             ),
+          ),
+
+          // Back button
+          Center(
+            child: TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text(
+                'Annuler',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  color: Colors.brown,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildQrScanner(BuildContext context) {
-    return Column(
-      children: [
-        Expanded(
-          child: MobileScanner(
-            onDetect: (capture) {
-              final List<Barcode> barcodes = capture.barcodes;
-              for (final barcode in barcodes) {
-                debugPrint('Barcode found! ${barcode.rawValue}');
-                // TODO: Traiter le code QR scanné (ex: naviguer vers une page de confirmation avec les données)
-                // Pour éviter de scanner en continu, vous pouvez arrêter le scanner
-                // ou naviguer immédiatement.
-                // Par exemple:
-                // Navigator.of(context).pushReplacement(
-                //   MaterialPageRoute(builder: (_) => ConfirmationPage(data: barcode.rawValue!)),
-                // );
-              }
-            },
-          ),
-        ),
-       
-      ],
-    );
+    // This method is no longer used for the user's flow
+    return const Center(child: Text('QR Scanner functionality is disabled for users.'));
   }
 
   Widget _buildInfoRow(String label, String value, {bool isTotal = false}) {

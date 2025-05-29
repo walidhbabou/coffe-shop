@@ -52,7 +52,7 @@ class PaymentPage extends StatelessWidget {
                   return Card(
                     child: ListTile(
                       leading: Hero(
-                        tag: 'product-${drink.name}-image',
+                        tag: 'product-${drink.id}-${drink.name}-image',
                         child: drink.imagePath.startsWith('http')
                             ? Image.network(drink.imagePath, width: 48, height: 48, fit: BoxFit.cover,
                                 loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
