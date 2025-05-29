@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import '../../presentation/pages/welcome/welcome_page.dart';
 import '../../presentation/pages/auth/login_page.dart';
 import '../../presentation/pages/auth/signup_page.dart';
-import '../../presentation/pages/profile/profile_home_page.dart';
+import '../../presentation/pages/user/user_home_page.dart';
 import '../../presentation/pages/scan/scan_pay_page.dart';
 import '../../presentation/pages/order/order_page.dart';
 import '../../presentation/pages/profile/account_page.dart';
 import '../../../data/models/payment_info.dart';
 import '../../presentation/pages/admin/admin_dashboard.dart';
-import '../../presentation/pages/user/user_home_page.dart';
+import 'package:provider/provider.dart';
+import '../../domain/viewmodels/auth_viewmodel.dart';
 
 class AppRoutes {
   static const String welcome = '/';
@@ -25,32 +26,106 @@ class AppRoutes {
     switch (settings.name) {
       case welcome:
         return MaterialPageRoute(builder: (_) => const WelcomePage());
+        
       case login:
         return MaterialPageRoute(builder: (_) => const LoginPage());
+        
       case signup:
         return MaterialPageRoute(builder: (_) => const SignupPage());
+        
       case profile:
-        return MaterialPageRoute(builder: (_) => const ProfileHomePage());
+        return MaterialPageRoute(
+          builder: (context) {
+            final authViewModel = context.read<AuthViewModel>();
+            
+            if (!authViewModel.isAuthenticated) {
+              return const LoginPage();
+            }
+            
+            if (authViewModel.isAdmin) {
+               return const AdminDashboard();
+            } else {
+               return const UserHomePage();
+            }
+          },
+        );
+        
+      case adminDashboard:
+        return MaterialPageRoute(
+          builder: (context) {
+            final authViewModel = context.read<AuthViewModel>();
+            
+            if (!authViewModel.isAuthenticated || !authViewModel.isAdmin) {
+              return const LoginPage();
+            }
+            
+            return const AdminDashboard();
+          },
+        );
+        
+      case userHome:
+        return MaterialPageRoute(
+          builder: (context) {
+            final authViewModel = context.read<AuthViewModel>();
+            
+            if (!authViewModel.isAuthenticated) {
+              return const LoginPage();
+            }
+            
+            return const UserHomePage();
+          },
+        );
+        
       case scanPay:
         return MaterialPageRoute(
-            builder: (_) => const ScanPayPage(
-                  paymentInfo: PaymentInfo(
-                    transactionId: 'DEMO',
-                    total: 0.0,
-                    date: '2024-01-01',
-                    time: '00:00',
-                  ),
-                ));
+          builder: (context) {
+            final authViewModel = context.read<AuthViewModel>();
+            
+            if (!authViewModel.isAuthenticated) {
+              return const LoginPage();
+            }
+            
+            return const ScanPayPage(
+              paymentInfo: PaymentInfo(
+                transactionId: 'DEMO',
+                total: 0.0,
+                date: '2024-01-01',
+                time: '00:00',
+              ),
+            );
+          },
+        );
+        
       case order:
-        return MaterialPageRoute(builder: (_) => const OrderPage());
+        return MaterialPageRoute(
+          builder: (context) {
+            final authViewModel = context.read<AuthViewModel>();
+            
+            if (!authViewModel.isAuthenticated) {
+              return const LoginPage();
+            }
+            
+            return const OrderPage();
+          },
+        );
+        
       case account:
-        return MaterialPageRoute(builder: (_) => const AccountPage());
-      case adminDashboard:
-        return MaterialPageRoute(builder: (_) => const AdminDashboard());
-      case userHome:
-        return MaterialPageRoute(builder: (_) => const UserHomePage());
+        return MaterialPageRoute(
+          builder: (context) {
+            final authViewModel = context.read<AuthViewModel>();
+            
+            if (!authViewModel.isAuthenticated) {
+              return const LoginPage();
+            }
+            
+            return const AccountPage();
+          },
+        );
+        
       default:
-        return MaterialPageRoute(builder: (_) => const WelcomePage());
+        return MaterialPageRoute(
+          builder: (_) => const WelcomePage(),
+        );
     }
   }
 }

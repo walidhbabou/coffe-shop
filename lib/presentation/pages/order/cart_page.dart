@@ -6,7 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../data/models/payment_info.dart';
 import 'cart_page.dart';
 import '../Scan/scan_pay_page.dart';
-import '../profile/profile_home_page.dart';
+import '../user/user_home_page.dart';
 import 'payment_page.dart';
 import '../scan/qr_transaction_page.dart';
 
@@ -39,20 +39,20 @@ class _CartPageState extends State<CartPage> {
     final formattedTime =
         "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}";
     return Scaffold(
+      appBar: AppBar(
+        title: Text('Votre Panier', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.brown,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+        ),
+      ),
       body: Column(
         children: [
-          SafeArea(
-            child: Align(
-              alignment: Alignment.topLeft,
-              child: IconButton(
-                icon:
-                    const Icon(Icons.arrow_back, color: Colors.brown, size: 28),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-            ),
-          ),
           Expanded(
             child: orderViewModel.cartEntries.isEmpty
                 ? Center(
@@ -133,7 +133,9 @@ class _CartPageState extends State<CartPage> {
                                                   .size
                                                   .width *
                                               0.18,
-                                          fit: BoxFit.cover)
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) => Icon(Icons.coffee_maker_outlined, size: 60, color: Colors.brown[300]),
+                                        )
                                       : Image.asset(
                                           drink.imagePath,
                                           width:
@@ -167,6 +169,7 @@ class _CartPageState extends State<CartPage> {
                                     ],
                                   ),
                                 ),
+                                const SizedBox(width: 12.0),
                                 Row(
                                   children: [
                                     IconButton(
@@ -181,9 +184,7 @@ class _CartPageState extends State<CartPage> {
                                             },
                                     ),
                                     Text('$quantity',
-                                        style: GoogleFonts.poppins(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16)),
+                                        style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold)),
                                     IconButton(
                                       icon: const Icon(Icons.add_circle_outline,
                                           color: Colors.brown),
@@ -193,6 +194,12 @@ class _CartPageState extends State<CartPage> {
                                               orderViewModel
                                                   .addToCart(drink.id);
                                             },
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                                      onPressed: () {
+                                        orderViewModel.removeAllFromCart(drink.id);
+                                      },
                                     ),
                                   ],
                                 ),

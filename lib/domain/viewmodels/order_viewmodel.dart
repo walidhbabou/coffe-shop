@@ -96,6 +96,14 @@ class OrderViewModel extends ChangeNotifier {
     }
   }
 
+  void removeAllFromCart(String drinkId) {
+    if (_cart.containsKey(drinkId)) {
+      _cart.remove(drinkId);
+      UserDataService.saveCart(_cart);
+      notifyListeners();
+    }
+  }
+
   Future<void> addOrder(double total) async {
     await UserDataService.addOrder(_cart, total);
     _orders = await UserDataService.loadOrders();

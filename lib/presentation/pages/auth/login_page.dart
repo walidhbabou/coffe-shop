@@ -55,6 +55,43 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     super.dispose();
   }
 
+  Future<void> _handleLogin() async {
+    if (_formKey.currentState!.validate()) {
+      HapticFeedback.mediumImpact();
+      
+      try {
+        final authViewModel = context.read<AuthViewModel>();
+        await authViewModel.signInWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+        );
+        
+        // Vérifier l'état d'authentification après la connexion
+        if (mounted && authViewModel.isAuthenticated) {
+          // Navigation basée sur le rôle de l'utilisateur
+          if (authViewModel.isAdmin) {
+            print('Navigating to admin dashboard...');
+            Navigator.of(context).pushReplacementNamed('/admin_dashboard');
+          } else {
+            print('Navigating to user home...');
+            Navigator.of(context).pushReplacementNamed('/user_home');
+          }
+        }
+
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erreur de connexion: ${e.toString()}'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final authViewModel = context.watch<AuthViewModel>();
@@ -172,6 +209,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                       if (value == null || value.isEmpty) {
                                         return 'Veuillez entrer votre email';
                                       }
+                                      if (!value.contains('@')) {
+                                        return 'Veuillez entrer un email valide';
+                                      }
                                       return null;
                                     },
                                   ),
@@ -216,6 +256,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                       if (value == null || value.isEmpty) {
                                         return 'Veuillez entrer votre mot de passe';
                                       }
+                                      if (value.length < 6) {
+                                        return 'Le mot de passe doit contenir au moins 6 caractères';
+                                      }
                                       return null;
                                     },
                                   ),
@@ -249,24 +292,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                           width: double.infinity,
                                           height: 56,
                                           child: ElevatedButton(
-                                            onPressed: authViewModel.isLoading
-                                                ? null
-                                                : () async {
-                                                    // Effet de retour haptique
-                                                    HapticFeedback.mediumImpact();
-                                                    
-                                                    if (_formKey.currentState!.validate()) {
-                                                      await authViewModel.signInWithEmailAndPassword(
-                                                        email: _emailController.text.trim(),
-                                                        password: _passwordController.text.trim(),
-                                                      );
-                                                      if (authViewModel.isAuthenticated &&
-                                                          context.mounted) {
-                                                        Navigator.of(context)
-                                                            .pushReplacementNamed('/profile');
-                                                      }
-                                                    }
-                                                  },
+                                            onPressed: authViewModel.isLoading ? null : _handleLogin,
                                             style: ElevatedButton.styleFrom(
                                               backgroundColor: const Color(0xFF6F4E37),
                                               foregroundColor: Colors.white,

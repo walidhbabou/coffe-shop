@@ -27,7 +27,10 @@ class DefaultFirebaseOptions {
       case TargetPlatform.macOS:
         return macos;
       case TargetPlatform.windows:
-        return windows;
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for windows - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -41,13 +44,13 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyBE2yZ7naKsKcdwiRsvuL9ZBlSgmmcjFds',
-    appId: '1:1014981934855:web:8cacc2eafc7a9e7efc8fa2',
+    apiKey: 'AIzaSyArVZo5ghD8svzpDSU8DPtK1XILvus_LAw',
+    appId: '1:1014981934855:web:fe57dc73b166b6e3fc8fa2',
     messagingSenderId: '1014981934855',
     projectId: 'coffe-shope-72bc2',
     authDomain: 'coffe-shope-72bc2.firebaseapp.com',
     storageBucket: 'coffe-shope-72bc2.firebasestorage.app',
-    measurementId: 'G-JPHSXFV51X',
+    measurementId: 'G-XXXXXXXXXX',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
@@ -59,30 +62,22 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyD1Thi2wrMwkR_FB2jZ0SeoZxlChQXTiAs',
-    appId: '1:1014981934855:ios:d342b8256bde150afc8fa2',
+    apiKey: 'AIzaSyArVZo5ghD8svzpDSU8DPtK1XILvus_LAw',
+    appId: '1:1014981934855:ios:fe57dc73b166b6e3fc8fa2',
     messagingSenderId: '1014981934855',
     projectId: 'coffe-shope-72bc2',
     storageBucket: 'coffe-shope-72bc2.firebasestorage.app',
+    iosClientId: '1014981934855-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX.apps.googleusercontent.com',
     iosBundleId: 'com.example.app',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyD1Thi2wrMwkR_FB2jZ0SeoZxlChQXTiAs',
-    appId: '1:1014981934855:ios:d342b8256bde150afc8fa2',
+    apiKey: 'AIzaSyArVZo5ghD8svzpDSU8DPtK1XILvus_LAw',
+    appId: '1:1014981934855:ios:fe57dc73b166b6e3fc8fa2',
     messagingSenderId: '1014981934855',
     projectId: 'coffe-shope-72bc2',
     storageBucket: 'coffe-shope-72bc2.firebasestorage.app',
+    iosClientId: '1014981934855-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX.apps.googleusercontent.com',
     iosBundleId: 'com.example.app',
-  );
-
-  static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyBE2yZ7naKsKcdwiRsvuL9ZBlSgmmcjFds',
-    appId: '1:1014981934855:web:94c9d07a1e2bd7b6fc8fa2',
-    messagingSenderId: '1014981934855',
-    projectId: 'coffe-shope-72bc2',
-    authDomain: 'coffe-shope-72bc2.firebaseapp.com',
-    storageBucket: 'coffe-shope-72bc2.firebasestorage.app',
-    measurementId: 'G-CHFZ796RTY',
   );
 }

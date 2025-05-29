@@ -36,21 +36,12 @@ class ScanPayPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // En-tête avec bouton retour
-          Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.brown, size: 28),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-              const SizedBox(width: 16),
-              Text(
-                'Détails de la facture',
-                style: GoogleFonts.poppins(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
+          Text(
+            'Détails de la facture',
+            style: GoogleFonts.poppins(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 32),
 
