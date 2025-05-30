@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:coffee_shop/core/constants/app_routes.dart';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import 'package:coffee_shop/main.dart'; // Pour accéder à navigatorKey
 
 class AuthViewModel extends ChangeNotifier {
   AuthRepository? _authRepository;
@@ -23,7 +24,7 @@ class AuthViewModel extends ChangeNotifier {
   AuthViewModel() {
     // Initialize current user
     _currentUser = _authService.currentUser;
-    
+
     // Listen to auth state changes
     _authService.authStateChanges.listen((User? user) {
       _currentUser = user;
@@ -59,13 +60,21 @@ class AuthViewModel extends ChangeNotifier {
   Future<bool> signIn(String email, String password) async {
     _setLoading(true);
     _clearError();
-    
+
     try {
-      final userCredential = await _authService.signInWithEmailAndPassword(email, password);
+      final userCredential =
+          await _authService.signInWithEmailAndPassword(email, password);
       if (userCredential != null) {
         _currentUser = userCredential.user;
+        await fetchUserRole();
         notifyListeners();
-        return true;
+
+        // Redirection basée sur l'email
+        if (_currentUser?.email == 'admin@coffeeapp.com') {
+          return true; // Redirigera vers AdminWelcomePage
+        } else {
+          return true; // Redirigera vers UserHomePage
+        }
       }
       _setError('Failed to sign in');
       return false;
@@ -80,9 +89,10 @@ class AuthViewModel extends ChangeNotifier {
   Future<bool> register(String email, String password) async {
     _setLoading(true);
     _clearError();
-    
+
     try {
-      final userCredential = await _authService.registerWithEmailAndPassword(email, password);
+      final userCredential =
+          await _authService.registerWithEmailAndPassword(email, password);
       if (userCredential != null) {
         _currentUser = userCredential.user;
         notifyListeners();
@@ -106,6 +116,14 @@ class AuthViewModel extends ChangeNotifier {
       _userRole = null;
       _userData = null;
       notifyListeners();
+
+      // Forcer la redirection vers la page de login
+      if (navigatorKey.currentContext != null) {
+        Navigator.of(navigatorKey.currentContext!).pushNamedAndRemoveUntil(
+          AppRoutes.login,
+          (route) => false,
+        );
+      }
     } catch (e) {
       _setError('Sign out error: $e');
     } finally {
@@ -121,7 +139,8 @@ class AuthViewModel extends ChangeNotifier {
       if (user != null) {
         _currentUser = user;
         await fetchUserRole();
-        print('ViewModel Google - isAuthenticated: $isAuthenticated, userRole: $_userRole');
+        print(
+            'ViewModel Google - isAuthenticated: $isAuthenticated, userRole: $_userRole');
       } else {
         _errorMessage = 'Connexion Google annulée';
         print(_errorMessage);
@@ -130,7 +149,8 @@ class AuthViewModel extends ChangeNotifier {
       _errorMessage = e.message;
       print('Erreur de connexion Google (via ViewModel): ${e.message}');
     } catch (e) {
-      _errorMessage = 'Une erreur inattendue est survenue lors de la connexion Google';
+      _errorMessage =
+          'Une erreur inattendue est survenue lors de la connexion Google';
       print('Erreur inattendue (via ViewModel): $e');
     } finally {
       _setLoading(false);
@@ -144,13 +164,15 @@ class AuthViewModel extends ChangeNotifier {
     try {
       await _authRepository?.resetPassword(email);
     } on UnimplementedError {
-      _errorMessage = 'La réinitialisation du mot de passe n\'est pas encore implémentée';
+      _errorMessage =
+          'La réinitialisation du mot de passe n\'est pas encore implémentée';
       print(_errorMessage);
     } on AuthException catch (e) {
       _errorMessage = e.message;
       print('Erreur de réinitialisation (via ViewModel): ${e.message}');
     } catch (e) {
-      _errorMessage = 'Une erreur inattendue est survenue lors de la réinitialisation';
+      _errorMessage =
+          'Une erreur inattendue est survenue lors de la réinitialisation';
       print('Erreur inattendue (via ViewModel): $e');
     } finally {
       _setLoading(false);
@@ -170,7 +192,8 @@ class AuthViewModel extends ChangeNotifier {
       _errorMessage = e.message;
       print('Erreur d\'envoi de vérification (via ViewModel): ${e.message}');
     } catch (e) {
-      _errorMessage = 'Une erreur inattendue est survenue lors de l\'envoi de vérification';
+      _errorMessage =
+          'Une erreur inattendue est survenue lors de l\'envoi de vérification';
       print('Erreur inattendue (via ViewModel): $e');
     } finally {
       _setLoading(false);
@@ -183,18 +206,20 @@ class AuthViewModel extends ChangeNotifier {
     if (user != null) {
       try {
         final userData = await _authRepository?.getUserData(user.uid);
-            
+
         if (userData != null) {
           _userData = userData;
           _userRole = userData['role'] ?? 'user';
           print('Rôle utilisateur chargé depuis Firestore: $_userRole');
         } else {
-          print('Aucun document utilisateur trouvé dans Firestore pour UID: ${user.uid}');
+          print(
+              'Aucun document utilisateur trouvé dans Firestore pour UID: ${user.uid}');
           _userRole = 'user';
           _userData = {'email': user.email, 'role': _userRole};
         }
       } catch (e) {
-        print('Erreur lors de la récupération du rôle/données depuis Firestore: $e');
+        print(
+            'Erreur lors de la récupération du rôle/données depuis Firestore: $e');
         _userRole = 'user';
         _userData = null;
       }
@@ -210,10 +235,18 @@ class AuthViewModel extends ChangeNotifier {
 
   String getInitialRoute() {
     if (_userData != null) {
-      print('getInitialRoute: authenticated, userRole: $_userRole, navigating to: ${_userRole == 'admin' ? AppRoutes.profile : AppRoutes.userHome}');
-      return _userRole == 'admin' ? AppRoutes.profile : AppRoutes.userHome;
+      print('getInitialRoute: authenticated, email: ${_currentUser?.email}');
+      if (_currentUser?.email == 'admin@coffeeapp.com') {
+        print(
+            'getInitialRoute: admin user detected, navigating to admin welcome page');
+        return AppRoutes.adminWelcome;
+      } else {
+        print(
+            'getInitialRoute: regular user detected, navigating to user home');
+        return AppRoutes.userHome;
+      }
     } else {
-      print('getInitialRoute: not authenticated, navigating to: ${AppRoutes.welcome}');
+      print('getInitialRoute: not authenticated, navigating to welcome page');
       return AppRoutes.welcome;
     }
   }
@@ -241,7 +274,8 @@ class AuthViewModel extends ChangeNotifier {
     _clearError();
 
     try {
-      final userCredential = await _authService.registerWithEmailAndPassword(email, password);
+      final userCredential =
+          await _authService.registerWithEmailAndPassword(email, password);
       if (userCredential != null) {
         _currentUser = userCredential.user;
         notifyListeners();

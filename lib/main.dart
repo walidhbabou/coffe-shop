@@ -10,26 +10,30 @@ import 'firebase_options.dart';
 import 'package:coffee_shop/data/services/init_service.dart';
 import 'package:coffee_shop/presentation/widgets/auth_wrapper.dart';
 import 'package:coffee_shop/presentation/pages/admin/admin_routes.dart';
+import 'package:coffee_shop/presentation/pages/welcome/welcome_page.dart';
+
+// Clé de navigation globale
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    
+
     // Attendre que Firebase soit complètement initialisé
     await Future.delayed(const Duration(seconds: 1));
-    
+
     // Créer le compte admin si nécessaire
     await createAdminIfNotExists();
-    
+
     // Initialize AuthViewModel with repository
     final authRepository = AuthRepository();
     final authViewModel = AuthViewModel();
     authViewModel.setRepository(authRepository);
-    
+
     runApp(
       MultiProvider(
         providers: [
@@ -98,6 +102,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'Coffee Shop',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -105,7 +110,7 @@ class MyApp extends StatelessWidget {
         visualDensity: VisualDensity.adaptivePlatformDensity,
         useMaterial3: true,
       ),
-      home: const AuthWrapper(),
+      home: const WelcomePage(),
       routes: {
         ...AppRoutes.generateRoutes(),
         ...AdminRoutes.getRoutes(),

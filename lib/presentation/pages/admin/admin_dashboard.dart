@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:coffee_shop/domain/viewmodels/auth_viewmodel.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AdminDashboard extends StatelessWidget {
   const AdminDashboard({Key? key}) : super(key: key);
@@ -9,14 +10,24 @@ class AdminDashboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authViewModel = context.watch<AuthViewModel>();
-    
+
     return Scaffold(
+      backgroundColor: Color.fromARGB(255, 227, 176, 151),
       appBar: AppBar(
-        title: const Text('Tableau de bord Admin'),
+        title: Text(
+          'Hi Admin',
+          style: GoogleFonts.poppins(
+              fontWeight: FontWeight.bold, color: Colors.white),
+        ),
+        backgroundColor: Colors.brown[700],
+        foregroundColor: Colors.white,
+        elevation: 4,
+        automaticallyImplyLeading: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: () => authViewModel.signOut(),
+            tooltip: 'Déconnexion',
           ),
         ],
       ),
@@ -25,65 +36,46 @@ class AdminDashboard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // En-tête avec informations de l'admin
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Bienvenue, ${authViewModel.currentUser?.email ?? "Admin"}',
-                      style: Theme.of(context).textTheme.headlineSmall,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Dernière connexion: ${authViewModel.userData?['lastLogin'] != null ? DateTime.fromMillisecondsSinceEpoch(authViewModel.userData!['lastLogin'].millisecondsSinceEpoch).toString() : "N/A"}',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ],
-                ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 2,
+                mainAxisSpacing: 16,
+                crossAxisSpacing: 16,
+                childAspectRatio: 2.5,
+                children: [
+                  _buildStatCard(
+                    context,
+                    'Utilisateurs',
+                    Icons.people,
+                    Colors.blue[700]!,
+                    () => _showUsersList(context),
+                  ),
+                  _buildStatCard(
+                    context,
+                    'Commandes',
+                    Icons.shopping_cart,
+                    Colors.green[700]!,
+                    () => _showOrdersList(context),
+                  ),
+                  _buildStatCard(
+                    context,
+                    'Produits',
+                    Icons.coffee,
+                    Colors.orange[700]!,
+                    () => _showProductsList(context),
+                  ),
+                  _buildStatCard(
+                    context,
+                    'Rapports',
+                    Icons.bar_chart,
+                    Colors.purple[700]!,
+                    () => _showReports(context),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 24),
-            
-            // Statistiques
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
-              children: [
-                _buildStatCard(
-                  context,
-                  'Utilisateurs',
-                  Icons.people,
-                  Colors.blue,
-                  () => _showUsersList(context),
-                ),
-                _buildStatCard(
-                  context,
-                  'Commandes',
-                  Icons.shopping_cart,
-                  Colors.green,
-                  () => _showOrdersList(context),
-                ),
-                _buildStatCard(
-                  context,
-                  'Produits',
-                  Icons.coffee,
-                  Colors.brown,
-                  () => _showProductsList(context),
-                ),
-                _buildStatCard(
-                  context,
-                  'Rapports',
-                  Icons.bar_chart,
-                  Colors.purple,
-                  () => _showReports(context),
-                ),
-              ],
             ),
           ],
         ),
@@ -95,29 +87,44 @@ class AdminDashboard extends StatelessWidget {
     BuildContext context,
     String title,
     IconData icon,
-    Color color,
+    Color iconColor,
     VoidCallback onTap,
   ) {
     return Card(
-      elevation: 4,
+      elevation: 6,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey[300]!),
+          ),
+          padding: const EdgeInsets.all(20.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
                 icon,
-                size: 48,
-                color: color,
+                size: 40,
+                color: iconColor,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Text(
                 title,
-                style: Theme.of(context).textTheme.titleLarge,
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[800],
+                ),
                 textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 2,
               ),
             ],
           ),
@@ -194,7 +201,8 @@ class AdminDashboard extends StatelessWidget {
     );
   }
 
-  void _editUser(BuildContext context, String userId, Map<String, dynamic> userData) {
+  void _editUser(
+      BuildContext context, String userId, Map<String, dynamic> userData) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -228,6 +236,30 @@ class AdminDashboard extends StatelessWidget {
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Fermer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.poppins(
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),

@@ -184,9 +184,11 @@ class InvoiceHistoryPage extends StatelessWidget {
                 const SizedBox(height: 24),
                 _buildDetailRow('Date', invoice.date),
                 _buildDetailRow('Heure', invoice.time),
-                _buildDetailRow('Total', '${invoice.total.toStringAsFixed(2)} €'),
+                _buildDetailRow(
+                    'Total', '${invoice.total.toStringAsFixed(2)} €'),
                 _buildDetailRow('Statut', _getStatusText(invoice.status)),
-                _buildDetailRow('Méthode de paiement', invoice.paymentMethod ?? 'Non spécifiée'),
+                _buildDetailRow('Méthode de paiement',
+                    invoice.paymentMethod ?? 'Non spécifiée'),
                 const SizedBox(height: 24),
                 Text(
                   'Articles',
@@ -248,13 +250,13 @@ class InvoiceHistoryPage extends StatelessWidget {
                         backgroundColor: Colors.green,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                       ),
                       child: Text(
                         'Marquer comme payée',
                         style: GoogleFonts.poppins(
-                          fontSize: 16,
+                          color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -278,6 +280,7 @@ class InvoiceHistoryPage extends StatelessWidget {
             label,
             style: GoogleFonts.poppins(
               color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
             ),
           ),
           Text(
@@ -290,4 +293,4 @@ class InvoiceHistoryPage extends StatelessWidget {
       ),
     );
   }
-} 
+}
