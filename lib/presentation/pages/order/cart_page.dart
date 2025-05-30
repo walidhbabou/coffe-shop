@@ -5,14 +5,14 @@ import '../../../data/models/drink.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../data/models/payment_info.dart';
 import 'cart_page.dart';
-// import '../Scan/scan_pay_page.dart'; // Removed for user flow
+// import '../Scan/scan_pay_page.dart'; 
 import '../user/user_home_page.dart';
-// import 'payment_page.dart'; // Might not be needed for user flow anymore
-// import '../scan/qr_transaction_page.dart'; // Might not be needed
-import 'package:firebase_auth/firebase_auth.dart'; // Import Firebase Auth
-import '../../../services/invoice_service.dart'; // Import InvoiceService
-import '../../../data/models/invoice_model.dart'; // Import Invoice model
-import '../../../domain/viewmodels/auth_viewmodel.dart'; // Import AuthViewModel
+// import 'payment_page.dart'; 
+// import '../scan/qr_transaction_page.dart'; 
+import 'package:firebase_auth/firebase_auth.dart'; 
+import '../../../services/invoice_service.dart'; 
+import '../../../data/models/invoice_model.dart'; 
+import '../../../domain/viewmodels/auth_viewmodel.dart'; 
 
 class CartPage extends StatefulWidget {
   final void Function(PaymentInfo)? onPay;
