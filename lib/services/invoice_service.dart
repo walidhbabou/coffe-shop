@@ -51,12 +51,22 @@ class InvoiceService {
   }
 
   // Mettre à jour le statut d'une facture
-  Future<void> updateInvoiceStatus(String invoiceId, String status) async {
+  Future<void> updateInvoiceStatus(String invoiceId, String status, {String? paymentMethod}) async {
     try {
+      // Create a map for the update data
+      Map<String, dynamic> updateData = {
+        'status': status
+      };
+
+      // Add paymentMethod to updateData if it's not null
+      if (paymentMethod != null) {
+        updateData['paymentMethod'] = paymentMethod;
+      }
+
       await _firestore
           .collection(_collection)
           .doc(invoiceId)
-          .update({'status': status});
+          .update(updateData);
     } catch (e) {
       print('Error updating invoice status: $e');
       rethrow;

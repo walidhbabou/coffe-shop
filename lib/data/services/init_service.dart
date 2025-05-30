@@ -9,55 +9,92 @@ Future<void> createAdminIfNotExists() async {
   const adminPassword = 'AdminPassword123';
 
   try {
-    debugPrint('Vérification de l\'existence du compte admin...');
-    
-    // Hacher le mot de passe
-    final hashedPassword = sha256.convert(utf8.encode(adminPassword)).toString();
-    
-    // Rechercher l'admin par email dans Firestore
-    final existingAdminDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .where('email', isEqualTo: adminEmail)
-        .limit(1)
-        .get();
+    debugPrint('Vérification et création du compte admin si nécessaire...');
 
-    if (existingAdminDoc.docs.isEmpty) {
-      debugPrint('Aucun compte admin trouvé dans Firestore. Création du document...');
+    User? firebaseAuthUser;
 
-      final adminDocRef = FirebaseFirestore.instance.collection('users').doc(adminEmail);
+    try {
+      // Attempt to create the user in Firebase Auth
+      final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: adminEmail,
+        password: adminPassword,
+      );
+      firebaseAuthUser = userCredential.user;
+      debugPrint('Admin user created successfully in Firebase Auth.');
 
-      await adminDocRef.set({
-        'role': 'admin',
-        'email': adminEmail,
-        'passwordHash': hashedPassword,
-        'createdAt': FieldValue.serverTimestamp(),
-        'lastLogin': FieldValue.serverTimestamp(),
-        'isActive': true,
-      });
-      
-      debugPrint('Document admin créé avec succès dans Firestore.');
-      debugPrint('Email: $adminEmail');
-    } else {
-      debugPrint('Document admin trouvé dans Firestore.');
-      final adminData = existingAdminDoc.docs.first.data();
-      
-      if (adminData['role'] != 'admin' || adminData['passwordHash'] == null) {
-        debugPrint('Le document admin existe mais nécessite une mise à jour (rôle/mot de passe).');
-        final adminDocRef = existingAdminDoc.docs.first.reference;
-        await adminDocRef.update({
-          'role': 'admin',
-          'passwordHash': hashedPassword,
-          'lastLogin': FieldValue.serverTimestamp(),
-          'isActive': true,
-        });
-        debugPrint('Document admin mis à jour dans Firestore.');
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'email-already-in-use') {
+        // User already exists in Firebase Auth, sign them in to get the User object
+        debugPrint('Admin email already in use in Firebase Auth. Signing in to get user...');
+        try {
+           final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+            email: adminEmail,
+            password: adminPassword,
+          );
+          firebaseAuthUser = userCredential.user;
+           debugPrint('Successfully signed in existing admin user from Firebase Auth.');
+        } on FirebaseAuthException catch (signInError) {
+           debugPrint('Error signing in existing admin user: ${signInError.code} - ${signInError.message}');
+           // If signing in fails for the existing user, we cannot proceed reliably.
+           rethrow; // Rethrow the sign-in error
+        }
       } else {
-        debugPrint('Document admin déjà existant et correctement configuré.');
+        // Other Firebase Auth errors during creation attempt
+        debugPrint('Firebase Auth Error during admin creation: ${e.code} - ${e.message}');
+        rethrow; // Rethrow other unexpected auth errors
       }
-      
-      await existingAdminDoc.docs.first.reference.update({
-        'lastLogin': FieldValue.serverTimestamp(),
-      });
+    }
+
+    // If we successfully got a Firebase Auth user (either by creation or sign-in)
+    if (firebaseAuthUser != null) {
+       final adminUid = firebaseAuthUser.uid;
+       debugPrint('Firebase Auth Admin UID: $adminUid');
+
+       // Now, ensure the corresponding Firestore document exists and is correct
+       final firestoreDocRef = FirebaseFirestore.instance.collection('users').doc(adminUid);
+       final firestoreDoc = await firestoreDocRef.get();
+
+       if (!firestoreDoc.exists) {
+         debugPrint('Admin document not found in Firestore for UID: $adminUid. Creating document...');
+
+         // Hash the password before storing in Firestore (optional, but good practice if you ever rely on this)
+         final hashedPassword = sha256.convert(utf8.encode(adminPassword)).toString();
+
+         await firestoreDocRef.set({
+            'role': 'admin',
+            'email': adminEmail, // Store email for easy lookup/reference
+            'passwordHash': hashedPassword, // Store hashed password (optional)
+            'createdAt': FieldValue.serverTimestamp(),
+            'lastLogin': FieldValue.serverTimestamp(),
+            'isActive': true,
+          });
+          debugPrint('Admin document created in Firestore for UID: $adminUid.');
+
+       } else {
+         debugPrint('Admin document found in Firestore for UID: $adminUid.');
+         // Check and update the existing document if necessary
+         final adminData = firestoreDoc.data() as Map<String, dynamic>?;
+
+         if (adminData?['role'] != 'admin' || adminData?['email'] != adminEmail) {
+            debugPrint('Updating existing admin document in Firestore.');
+             // Re-hash password in case it was updated manually somewhere else?
+             // Or rely solely on Firebase Auth for password. Sticking to updating role/email here.
+             await firestoreDocRef.update({
+               'role': 'admin',
+               'email': adminEmail,
+               'lastLogin': FieldValue.serverTimestamp(),
+               'isActive': true, // Ensure isActive is true
+             });
+             debugPrint('Admin document updated in Firestore.');
+         } else {
+             // Just update last login timestamp if document is already correct
+              await firestoreDocRef.update({'lastLogin': FieldValue.serverTimestamp()});
+             debugPrint('Admin document already correctly configured in Firestore. Last login updated.');
+         }
+       }
+    } else {
+        // This case should ideally not be reached if Firebase Auth operations are successful
+        debugPrint('Failed to obtain Firebase Auth user after creation/sign-in attempts.');
     }
 
   } on FirebaseException catch (e) {

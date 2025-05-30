@@ -11,6 +11,7 @@ import '../../presentation/pages/admin/admin_welcome_page.dart';
 import '../../presentation/pages/user/invoice_history_page.dart';
 import 'package:provider/provider.dart';
 import '../../domain/viewmodels/auth_viewmodel.dart';
+import '../../presentation/pages/admin/admin_dashboard.dart';
 
 class AppRoutes {
   static const String welcome = '/';
@@ -22,12 +23,14 @@ class AppRoutes {
   static const String account = '/account';
   static const String userHome = '/user_home';
   static const String invoiceHistory = '/invoice_history';
+  static const String adminDashboard = '/admin_dashboard';
 
   static Map<String, WidgetBuilder> generateRoutes() {
     return {
       signup: (context) => const SignupPage(),
       userHome: (context) => const UserHomePage(),
       account: (context) => const AccountPage(),
+      adminDashboard: (context) => const AdminDashboard(),
     };
   }
 
@@ -55,7 +58,7 @@ class AppRoutes {
             
             if (authViewModel.isAdmin) {
               print('AppRoutes: User is admin, navigating to admin dashboard.');
-              return const AdminWelcomePage();
+              return const AdminDashboard();
             } else {
               print('AppRoutes: User is not admin, navigating to user home.');
               return const UserHomePage();

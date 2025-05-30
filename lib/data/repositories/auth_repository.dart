@@ -17,122 +17,103 @@ class AuthRepository {
   Stream<User?> get authStateChanges => _firebaseAuth.authStateChanges(); // Keep this to observe auth state changes from other methods (like Google Sign-In)
 
   // Modified method to sign in using Firestore collection
-  Future<Map<String, dynamic>?> signInWithFirestore({
+  Future<Map<String, dynamic>?> signInWithEmailAndPassword({
     required String email,
     required String password,
   }) async {
     try {
-      print('Tentative de connexion via Firestore...');
-      print('Email: $email');
+      print('Tentative de connexion via Firebase Auth...');
       
-      if (email.isEmpty) {
-        throw AuthException('L\'email ne peut pas être vide');
+      final userCredential = await _firebaseAuth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      // If sign-in is successful, fetch user data from Firestore
+      // We still need to fetch from Firestore to get the role and other data
+      final user = userCredential.user;
+      if (user != null) {
+        final userData = await getUserData(user.uid); // Use UID to fetch user data
+         print('Connexion Firebase Auth réussie pour: ${user.email}');
+         // No need to update last login here, Firebase Auth handles it implicitly or you can add it to the auth state change listener
+         return userData; // Return user data from Firestore
       }
-      
-      if (password.isEmpty) {
-        throw AuthException('Le mot de passe ne peut pas être vide');
+      return null; // Should not happen if userCredential is not null
+
+    } on FirebaseAuthException catch (e) {
+      print('Erreur de connexion Firebase Auth: ${e.code} - ${e.message}');
+      // Translate specific Firebase Auth errors to our AuthException
+      String errorMessage;
+      if (e.code == 'user-not-found') {
+        errorMessage = 'Aucun utilisateur trouvé avec cet email.';
+      } else if (e.code == 'wrong-password') {
+        errorMessage = 'Mot de passe incorrect.';
+      } else if (e.code == 'invalid-email') {
+        errorMessage = 'Format d\'email invalide.';
+      } else if (e.code == 'user-disabled') {
+         errorMessage = 'Cet utilisateur a été désactivé.';
+      } else {
+        errorMessage = 'Erreur de connexion: ${e.message}';
       }
-
-      // Query Firestore for the user by email
-      final querySnapshot = await _firestore
-          .collection('users')
-          .where('email', isEqualTo: email.trim())
-          .limit(1)
-          .get();
-
-      if (querySnapshot.docs.isEmpty) {
-        print('Utilisateur non trouvé dans Firestore');
-        throw AuthException('Aucun utilisateur trouvé avec cet email.');
-      }
-
-      final userData = querySnapshot.docs.first.data();
-      final storedPasswordHash = userData['password']; // Assume password is stored (ideally as a hash)
-
-      // TODO: Implement secure password verification here!
-      // You MUST NOT store passwords in plain text. Implement a robust hashing and comparison mechanism.
-      // Example (PLACEHOLDER - REPLACE WITH SECURE IMPLEMENTATION):
-      // bool passwordMatches = verifyPassword(password, storedPasswordHash);
-      bool passwordMatches = (password == storedPasswordHash); // DANGEROUS: Plain text password comparison - REPLACE THIS!
-
-      if (!passwordMatches) {
-        print('Mot de passe incorrect');
-        throw AuthException('Mot de passe incorrect.');
-      }
-
-      print('Connexion Firestore réussie pour: $email');
-      // Update last login timestamp
-      await querySnapshot.docs.first.reference.update({
-        'lastLogin': FieldValue.serverTimestamp(),
-      });
-
-      // Return user data from Firestore
-      return userData;
-    } on AuthException catch (e) {
-      print('Erreur de connexion Firestore: ${e.message}');
-      rethrow;
+      throw AuthException(errorMessage); // Throw our custom exception
     } catch (e) {
-      print('Erreur inattendue lors de la connexion Firestore: $e');
-      throw AuthException('Une erreur inattendue est survenue lors de la connexion Firestore');
+      print('Erreur inattendue lors de la connexion Firebase Auth: $e');
+      throw AuthException('Une erreur inattendue est survenue lors de la connexion.');
     }
   }
 
-  // Modified method to sign up using Firestore collection
-  Future<Map<String, dynamic>?> signUpWithEmailAndPassword({
+  // Modified method to sign up using Firebase Auth
+  Future<Map<String, dynamic>?> registerWithEmailAndPassword({
     required String email,
     required String password,
   }) async {
      try {
-       print('Tentative d\'inscription via Firestore...');
-       print('Email: $email');
+       print('Tentative d\'inscription via Firebase Auth...');
 
-       if (email.isEmpty) {
-         throw AuthException('L\'email ne peut pas être vide');
+       final userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
+         email: email,
+         password: password,
+       );
+
+       final user = userCredential.user;
+
+       if (user != null) {
+         // Create a new user document in Firestore after successful Firebase Auth registration
+         final newUserDocRef = _firestore.collection('users').doc(user.uid); // Use Firebase Auth UID as doc ID
+
+         final userData = {
+           'role': 'user', // Default role for new registrations
+           'email': user.email,
+           // Do NOT store password here. Firebase Auth manages it securely.
+           'createdAt': FieldValue.serverTimestamp(),
+           'lastLogin': FieldValue.serverTimestamp(), // Update on registration
+           'isActive': true,
+         };
+
+         await newUserDocRef.set(userData);
+
+         print('Inscription réussie dans Firebase Auth et Firestore pour: ${user.email}');
+         return userData;
        }
+       return null;
 
-       if (password.isEmpty) {
-         throw AuthException('Le mot de passe ne peut pas être vide');
+     } on FirebaseAuthException catch (e) {
+       print('Erreur d\'inscription Firebase Auth: ${e.code} - ${e.message}');
+       // Translate specific Firebase Auth errors
+       String errorMessage;
+       if (e.code == 'email-already-in-use') {
+         errorMessage = 'Cette adresse email est déjà utilisée.';
+       } else if (e.code == 'invalid-email') {
+          errorMessage = 'Format d\'email invalide.';
+       } else if (e.code == 'weak-password') {
+          errorMessage = 'Le mot de passe est trop faible.';
+       } else {
+         errorMessage = 'Erreur d\'inscription: ${e.message}';
        }
-
-       // Vérifier si l\'utilisateur existe déjà
-       final existingUserDoc = await _firestore
-           .collection('users')
-           .where('email', isEqualTo: email.trim())
-           .limit(1)
-           .get();
-
-       if (existingUserDoc.docs.isNotEmpty) {
-         print('Email déjà utilisé dans Firestore');
-         throw AuthException('Cette adresse email est déjà utilisée.');
-       }
-
-       // TODO: HACHER LE MOT DE PASSE AVANT DE LE STOCKER !
-       final hashedPassword = password; // DANGEROUS: Storing plain text password - REPLACE THIS!
-
-       // Créer un nouveau document utilisateur dans Firestore
-       // Utiliser l\'email comme ID de document est simple mais a des limitations
-       // Considérer d\'utiliser un champ d\'ID unique différent de l\'email si l\'email peut changer.
-       final newUserDocRef = _firestore.collection('users').doc(email.trim()); // Utilisation de l\'email comme ID
-
-       final userData = {
-         'role': 'user', // Rôle par défaut pour les nouvelles inscriptions
-         'email': email.trim(),
-         'password': hashedPassword, // TODO: STOCKER LE MOT DE PASSE HACHÉ !
-         'createdAt': FieldValue.serverTimestamp(),
-         'lastLogin': FieldValue.serverTimestamp(), // Mettre à jour lors de l\'inscription
-         'isActive': true,
-       };
-
-       await newUserDocRef.set(userData);
-
-       print('Inscription réussie dans Firestore pour: $email');
-       return userData;
-
-     } on AuthException catch (e) {
-       print('Erreur d\'inscription Firestore: ${e.message}');
-       rethrow;
+       throw AuthException(errorMessage); // Throw our custom exception
      } catch (e) {
-       print('Erreur inattendue lors de l\'inscription Firestore: $e');
-       throw AuthException('Une erreur inattendue est survenue lors de l\'inscription Firestore');
+       print('Erreur inattendue lors de l\'inscription Firebase Auth: $e');
+       throw AuthException('Une erreur inattendue est survenue lors de l\'inscription.');
      }
   }
 
@@ -216,25 +197,14 @@ class AuthRepository {
      throw UnimplementedError('Email verification not implemented for Firestore auth.');
   }
   
-  // Method to get user data from Firestore based on UID (or email if using email as ID)
-  // This method now needs to handle both UID (for Google users) and email (for manual users)
-  Future<Map<String, dynamic>?> getUserData(String identifier) async {
+  // Method to get user data from Firestore based on UID
+  Future<Map<String, dynamic>?> getUserData(String uid) async {
     try {
-      // Assume identifier can be either Firebase Auth UID or email
-      // If using email as doc ID for manual users, query by ID.
-      // If using UID for Google users, query by ID.
-      // A more robust approach might be to store UID in Firestore doc for manual users too.
-
-       // Try getting by UID first (for Google users)
-       DocumentSnapshot doc = await _firestore.collection('users').doc(identifier).get();
+       // Get by UID (this will work for both email/password and Google users now)
+       DocumentSnapshot doc = await _firestore.collection('users').doc(uid).get();
 
        if (!doc.exists) {
-          // If not found by UID, try querying by email (for manual users if email is not doc ID)
-          // Note: If email is used as doc ID for manual users, the previous get() call would have found it.
-          // This part is mainly needed if you use different ID strategies.
-          // Given our current plan to use email as doc ID for manual users, this else if might not be needed or needs adjustment.
-          // For consistency, let's assume identifier is always the doc ID (either UID or email).
-           print('Document utilisateur non trouvé par ID: $identifier');
+           print('Document utilisateur non trouvé par UID: $uid');
            return null;
        }
        
