@@ -30,6 +30,11 @@ class AdminUsersViewModel with ChangeNotifier {
     }
   }
 
+  // Public method to fetch users
+  Future<void> fetchUsers() async {
+    await _fetchUsers();
+  }
+
   // Méthode pour supprimer un utilisateur par son UID
   Future<void> deleteUser(String userId) async {
     _isLoading = true; // Optional: Show loading during deletion
