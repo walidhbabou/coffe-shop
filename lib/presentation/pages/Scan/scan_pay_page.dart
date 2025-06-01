@@ -1,13 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../data/models/payment_info.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:provider/provider.dart';
 import '../../../domain/viewmodels/order_viewmodel.dart';
 import '../../../domain/viewmodels/auth_viewmodel.dart';
 import '../../../services/invoice_service.dart';
 import '../../../data/models/invoice_model.dart';
 import 'package:flutter/foundation.dart';
+import '../../../data/services/user_data_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../widgets/payment_method_card.dart';
+import '../../widgets/payment_option.dart';
+import '../../widgets/styled_button.dart';
+import '../../widgets/instruction_step.dart';
+import '../../widgets/payment_header.dart';
+import '../../widgets/payment_info_card.dart';
+import '../../widgets/qr_code_section.dart';
 
 class ScanPayPage extends StatefulWidget {
   final PaymentInfo? paymentInfo;
@@ -180,7 +188,7 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
                   ),
                 ),
                 const SizedBox(height: 32),
-                _buildStyledButton(
+                StyledButton(
                   text: 'Retour',
                   color: Colors.brown,
                   onPressed: () => Navigator.of(context).pop(),
@@ -218,188 +226,20 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // En-tête moderne avec gradient
-              _buildHeader(),
+              const PaymentHeader(),
               const SizedBox(height: 32),
-
-              // Carte principale redesignée
-              _buildMainCard(info),
+              PaymentInfoCard(info: info),
               const SizedBox(height: 24),
-
-              // QR Code avec design amélioré
-              _buildQRCodeSection(info),
+              QRCodeSection(info: info),
               const SizedBox(height: 24),
-
-              // Instructions stylisées
               _buildInstructionsCard(),
               const SizedBox(height: 24),
-
-              // Sélection de méthode de paiement moderne
               _buildPaymentMethodCard(context),
               const SizedBox(height: 24),
-
-              // Boutons d'action modernisés
               _buildActionButtons(context, info, orderViewModel),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.brown.shade600, Colors.brown.shade400],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.brown.withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.receipt_long,
-              color: Colors.white,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Text(
-            'Détails de la facture',
-            style: GoogleFonts.poppins(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMainCard(PaymentInfo info) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.brown.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildInfoRow('Transaction ID', info.transactionId),
-          const SizedBox(height: 12),
-          _buildInfoRow('Date', info.date),
-          const SizedBox(height: 12),
-          _buildInfoRow('Heure', info.time),
-          const SizedBox(height: 20),
-          Container(
-            width: double.infinity,
-            height: 1,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.brown.withOpacity(0.1),
-                  Colors.brown.withOpacity(0.3),
-                  Colors.brown.withOpacity(0.1),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          _buildInfoRow(
-            'Total',
-            '${info.total.toStringAsFixed(2)} €',
-            isTotal: true,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQRCodeSection(PaymentInfo info) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.brown.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Text(
-            'Code QR de Paiement',
-            style: GoogleFonts.poppins(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.brown,
-            ),
-          ),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.brown.shade50,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: Colors.brown.withOpacity(0.2),
-                width: 2,
-              ),
-            ),
-            child: QrImageView(
-              data: 'InvoiceID: ${info.invoiceId}\n'
-                  'Transaction: ${info.transactionId}\n'
-                  'Total: ${info.total.toStringAsFixed(2)} €',
-              version: QrVersions.auto,
-              size: 200.0,
-              backgroundColor: Colors.transparent,
-              errorStateBuilder: (context, error) => Container(
-                height: 200,
-                width: 200,
-                decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Center(
-                  child: Text(
-                    'Erreur de génération\ndu QR code',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.red),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -448,9 +288,18 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
             ],
           ),
           const SizedBox(height: 20),
-          _buildInstructionStep('1', 'Présentez ce code QR à la caisse'),
-          _buildInstructionStep('2', 'Le caissier scannera le code et confirmera le paiement'),
-          _buildInstructionStep('3', 'Votre commande sera alors marquée comme payée et votre panier sera vidé'),
+          InstructionStep(
+            number: '1',
+            text: 'Présentez ce code QR à la caisse',
+          ),
+          InstructionStep(
+            number: '2',
+            text: 'Le caissier scannera le code et confirmera le paiement',
+          ),
+          InstructionStep(
+            number: '3',
+            text: 'Votre commande sera alors marquée comme payée et votre panier sera vidé',
+          ),
         ],
       ),
     );
@@ -541,7 +390,7 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
       children: [
         SizedBox(
           width: double.infinity,
-          child: _buildStyledButton(
+          child: StyledButton(
             text: 'Confirmer le paiement',
             color: const Color(0xFF5B8C6A),
             isEnabled: _selectedPaymentMethod != null,
@@ -553,7 +402,7 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
         const SizedBox(height: 16),
         SizedBox(
           width: double.infinity,
-          child: _buildStyledButton(
+          child: StyledButton(
             text: 'Annuler',
             color: Colors.red,
             isOutlined: true,
@@ -561,65 +410,6 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildStyledButton({
-    required String text,
-    required Color color,
-    required VoidCallback? onPressed,
-    bool isEnabled = true,
-    bool isOutlined = false,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        boxShadow: isEnabled && !isOutlined ? [
-          BoxShadow(
-            color: color.withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ] : null,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: isOutlined
-          ? OutlinedButton(
-              onPressed: onPressed,
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 18),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                side: BorderSide(color: color, width: 2),
-              ),
-              child: Text(
-                text,
-                style: GoogleFonts.poppins(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: color,
-                ),
-              ),
-            )
-          : ElevatedButton(
-              onPressed: onPressed,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isEnabled ? color : Colors.grey,
-                padding: const EdgeInsets.symmetric(vertical: 18),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                elevation: 0,
-              ),
-              child: Text(
-                text,
-                style: GoogleFonts.poppins(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-            ),
     );
   }
 
@@ -682,93 +472,6 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
     }
   }
 
-  Widget _buildInfoRow(String label, String value, {bool isTotal = false}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: GoogleFonts.poppins(
-            fontSize: isTotal ? 18 : 16,
-            fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
-            color: isTotal ? Colors.brown.shade700 : Colors.black87,
-          ),
-        ),
-        Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: isTotal ? 12 : 0,
-            vertical: isTotal ? 6 : 0,
-          ),
-          decoration: isTotal ? BoxDecoration(
-            color: Colors.brown.shade50,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.brown.withOpacity(0.3)),
-          ) : null,
-          child: Text(
-            value,
-            style: GoogleFonts.poppins(
-              fontSize: isTotal ? 18 : 16,
-              fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
-              color: isTotal ? Colors.brown.shade700 : Colors.black87,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildInstructionStep(String number, String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.brown.shade600, Colors.brown.shade400],
-              ),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.brown.withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Center(
-              child: Text(
-                number,
-                style: GoogleFonts.poppins(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                text,
-                style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  color: Colors.brown.shade600,
-                  height: 1.4,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showPaymentMethodSelection(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -784,7 +487,6 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Handle bar
               Center(
                 child: Container(
                   width: 40,
@@ -805,20 +507,28 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
                 ),
               ),
               const SizedBox(height: 24),
-              _buildPaymentOption(
-                context,
+              PaymentOption(
                 icon: Icons.credit_card,
                 title: 'Paiement en ligne',
                 subtitle: 'Carte bancaire, PayPal...',
-                value: 'Online',
+                isSelected: _selectedPaymentMethod == 'Online',
+                onTap: () {
+                  Navigator.pop(context);
+                  _showOnlinePaymentOptions(context);
+                },
               ),
               const SizedBox(height: 12),
-              _buildPaymentOption(
-                context,
+              PaymentOption(
                 icon: Icons.payments,
                 title: 'Espèces',
                 subtitle: 'Paiement en liquide',
-                value: 'Cash',
+                isSelected: _selectedPaymentMethod == 'Cash',
+                onTap: () {
+                  setState(() {
+                    _selectedPaymentMethod = 'Cash';
+                  });
+                  Navigator.pop(context);
+                },
               ),
               const SizedBox(height: 24),
             ],
@@ -828,79 +538,206 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildPaymentOption(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required String value,
-  }) {
-    final isSelected = _selectedPaymentMethod == value;
-    
-    return InkWell(
-      onTap: () {
-        setState(() {
-          _selectedPaymentMethod = value;
-        });
-        Navigator.pop(context);
-      },
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: isSelected ? Colors.brown : Colors.grey.shade300,
-            width: isSelected ? 2 : 1,
+  void _showOnlinePaymentOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.8,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
-          borderRadius: BorderRadius.circular(16),
-          color: isSelected ? Colors.brown.shade50 : Colors.transparent,
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isSelected ? Colors.brown : Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                icon,
-                color: isSelected ? Colors.white : Colors.grey.shade600,
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: isSelected ? Colors.brown.shade700 : Colors.black87,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Vos cartes de paiement',
+                      style: GoogleFonts.poppins(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.brown.shade700,
+                      ),
                     ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      color: Colors.grey.shade600,
+                    IconButton(
+                      icon: const Icon(Icons.add_circle_outline),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.pushNamed(context, '/payment_methods');
+                      },
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            if (isSelected)
-              Icon(
-                Icons.check_circle,
-                color: Colors.brown,
-                size: 24,
+              Expanded(
+                child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                  stream: UserDataService.paymentMethodsStream(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.credit_card_off,
+                              size: 64,
+                              color: Colors.grey.shade400,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Aucune carte enregistrée',
+                              style: GoogleFonts.poppins(
+                                fontSize: 18,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            StyledButton(
+                              text: 'Ajouter une carte',
+                              color: Colors.brown,
+                              onPressed: () {
+                                Navigator.pop(context);
+                                Navigator.pushNamed(context, '/payment_methods');
+                              },
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    final cards = snapshot.data!.docs;
+                    return ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: cards.length,
+                      itemBuilder: (context, index) {
+                        final card = cards[index].data();
+                        return PaymentMethodCard(
+                          card: card,
+                          onDelete: () => _showDeleteConfirmationDialog(context, cards[index].id),
+                          onSelect: () {
+                            setState(() {
+                              _selectedPaymentMethod = 'Online';
+                            });
+                            Navigator.pop(context);
+                          },
+                        );
+                      },
+                    );
+                  },
+                ),
               ),
-          ],
-        ),
-      ),
+            ],
+          ),
+        );
+      },
     );
+  }
+
+  void _showDeleteConfirmationDialog(BuildContext context, String paymentMethodId) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(
+            'Supprimer cette méthode de paiement',
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.brown.shade700,
+            ),
+          ),
+          content: Text(
+            'Êtes-vous sûr de vouloir supprimer cette méthode de paiement?',
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              color: Colors.brown.shade600,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'Annuler',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.brown.shade600,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _handleDeletePaymentMethod(paymentMethodId);
+              },
+              child: Text(
+                'Supprimer',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.red,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _handleDeletePaymentMethod(String paymentMethodId) async {
+    try {
+      await UserDataService.deletePaymentMethod(paymentMethodId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 12),
+                Text(
+                  'Méthode de paiement supprimée avec succès!',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Erreur lors de la suppression de la méthode de paiement: $e',
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    }
   }
 }

@@ -110,53 +110,99 @@ class UserDataService {
     return {};
   }
 
+  static Stream<QuerySnapshot<Map<String, dynamic>>> paymentMethodsStream() {
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) {
+      return Stream.empty();
+    }
+    
+    return _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('payment_methods')
+        .snapshots();
+  }
+
   static Future<void> addPaymentMethod({
     required String cardType,
     required String lastFourDigits,
     required String expiryDate,
     required bool isDefault,
   }) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('payment_methods')
-          .add({
-        'cardType': cardType,
-        'lastFourDigits': lastFourDigits,
-        'expiryDate': expiryDate,
-        'isDefault': isDefault,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-    }
-  }
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) throw Exception('Utilisateur non connecté');
 
-  static Stream<QuerySnapshot<Map<String, dynamic>>> paymentMethodsStream() {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      return FirebaseFirestore.instance
+    // Si c'est la carte par défaut, mettre à jour les autres cartes
+    if (isDefault) {
+      final batch = _firestore.batch();
+      final otherCards = await _firestore
           .collection('users')
-          .doc(user.uid)
+          .doc(userId)
           .collection('payment_methods')
-          .orderBy('createdAt', descending: false)
-          .snapshots();
-    } else {
-      // Retourne un stream vide si pas connecté
-      return const Stream.empty();
+          .where('isDefault', isEqualTo: true)
+          .get();
+
+      for (var doc in otherCards.docs) {
+        batch.update(doc.reference, {'isDefault': false});
+      }
+      await batch.commit();
     }
+
+    // Ajouter la nouvelle carte
+    await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('payment_methods')
+        .add({
+      'cardType': cardType,
+      'lastFourDigits': lastFourDigits,
+      'expiryDate': expiryDate,
+      'isDefault': isDefault,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
   }
 
   static Future<void> deletePaymentMethod(String paymentMethodId) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('payment_methods')
-          .doc(paymentMethodId)
-          .delete();
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) throw Exception('Utilisateur non connecté');
+
+    await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('payment_methods')
+        .doc(paymentMethodId)
+        .delete();
+  }
+
+  static Future<void> setDefaultPaymentMethod(String paymentMethodId) async {
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) throw Exception('Utilisateur non connecté');
+
+    final batch = _firestore.batch();
+    
+    // Mettre à jour toutes les cartes pour les marquer comme non par défaut
+    final otherCards = await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('payment_methods')
+        .where('isDefault', isEqualTo: true)
+        .get();
+
+    for (var doc in otherCards.docs) {
+      batch.update(doc.reference, {'isDefault': false});
     }
+
+    // Marquer la carte sélectionnée comme par défaut
+    batch.update(
+      _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('payment_methods')
+          .doc(paymentMethodId),
+      {'isDefault': true},
+    );
+
+    await batch.commit();
   }
 
   static Future<void> addAddress({
