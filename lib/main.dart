@@ -8,7 +8,6 @@ import 'package:coffee_shop/domain/viewmodels/order_viewmodel.dart';
 import 'package:coffee_shop/domain/viewmodels/invoice_viewmodel.dart';
 import 'firebase_options.dart';
 import 'package:coffee_shop/data/services/init_service.dart';
-import 'package:coffee_shop/presentation/widgets/auth_wrapper.dart';
 import 'package:coffee_shop/presentation/pages/admin/admin_routes.dart';
 import 'package:coffee_shop/presentation/pages/welcome/welcome_page.dart';
 
