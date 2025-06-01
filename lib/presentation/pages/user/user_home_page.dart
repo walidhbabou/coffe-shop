@@ -14,6 +14,7 @@ import '../../../core/constants/app_routes.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../services/invoice_service.dart';
 import '../../../data/models/invoice_model.dart';
+import '../../widgets/recent_invoices_section.dart';
 
 class UserHomePage extends StatefulWidget {
   final PaymentInfo? pendingPaymentInfo;
@@ -268,7 +269,6 @@ class _HomeContent extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          const SizedBox(height: 32),
           const Text(
             'Your favorites',
             style: TextStyle(
@@ -416,6 +416,22 @@ class _HomeContent extends StatelessWidget {
                     },
                   ),
           ),
+          const SizedBox(height: 32),
+          StreamBuilder<List<Invoice>>(
+            stream: Stream.fromFuture(
+              InvoiceService().getRecentInvoices(
+                context.read<AuthViewModel>().currentUser?.uid ?? '',
+                limit: 5,
+              ),
+            ),
+            builder: (context, snapshot) {
+              return RecentInvoicesSection(
+                invoices: snapshot.data ?? [],
+                isLoading: snapshot.connectionState == ConnectionState.waiting,
+              );
+            },
+          ),
+          const SizedBox(height: 24),
         ],
       ),
     );

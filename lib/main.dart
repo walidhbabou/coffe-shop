@@ -10,6 +10,7 @@ import 'firebase_options.dart';
 import 'package:coffee_shop/data/services/init_service.dart';
 import 'package:coffee_shop/presentation/pages/admin/admin_routes.dart';
 import 'package:coffee_shop/presentation/pages/welcome/welcome_page.dart';
+import 'package:coffee_shop/data/services/product_service.dart';
 
 // Clé de navigation globale
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -32,6 +33,9 @@ void main() async {
     final authRepository = AuthRepository();
     final authViewModel = AuthViewModel();
     authViewModel.setRepository(authRepository);
+
+    // Stocker automatiquement les produits dans Firestore au démarrage
+    await ProductService().fetchAndStoreProducts();
 
     runApp(
       MultiProvider(

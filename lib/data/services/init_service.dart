@@ -14,7 +14,6 @@ Future<void> createAdminIfNotExists() async {
     User? firebaseAuthUser;
 
     try {
-      // Attempt to create the user in Firebase Auth
       final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: adminEmail,
         password: adminPassword,
@@ -24,7 +23,6 @@ Future<void> createAdminIfNotExists() async {
 
     } on FirebaseAuthException catch (e) {
       if (e.code == 'email-already-in-use') {
-        // User already exists in Firebase Auth, sign them in to get the User object
         debugPrint('Admin email already in use in Firebase Auth. Signing in to get user...');
         try {
            final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
@@ -35,17 +33,14 @@ Future<void> createAdminIfNotExists() async {
            debugPrint('Successfully signed in existing admin user from Firebase Auth.');
         } on FirebaseAuthException catch (signInError) {
            debugPrint('Error signing in existing admin user: ${signInError.code} - ${signInError.message}');
-           // If signing in fails for the existing user, we cannot proceed reliably.
-           rethrow; // Rethrow the sign-in error
+           rethrow; 
         }
       } else {
-        // Other Firebase Auth errors during creation attempt
         debugPrint('Firebase Auth Error during admin creation: ${e.code} - ${e.message}');
-        rethrow; // Rethrow other unexpected auth errors
+        rethrow; 
       }
     }
 
-    // If we successfully got a Firebase Auth user (either by creation or sign-in)
     if (firebaseAuthUser != null) {
        final adminUid = firebaseAuthUser.uid;
        debugPrint('Firebase Auth Admin UID: $adminUid');
