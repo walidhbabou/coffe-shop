@@ -12,9 +12,8 @@ import '../auth/login_page.dart';
 import '../admin/admin_dashboard.dart';
 import '../../../core/constants/app_routes.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../services/invoice_service.dart';
-import '../../../data/models/invoice_model.dart';
 import '../../widgets/recent_invoices_section.dart';
+import '../../../domain/viewmodels/invoice_viewmodel.dart';
 
 class UserHomePage extends StatefulWidget {
   final PaymentInfo? pendingPaymentInfo;
@@ -28,8 +27,6 @@ class _UserHomePageState extends State<UserHomePage> {
   int _selectedIndex = 0;
   PaymentInfo? _pendingPaymentInfo;
   bool _isLoggingOut = false;
-  List<Invoice> _recentInvoices = [];
-  bool _isLoading = true;
 
   @override
   void initState() {
@@ -38,7 +35,16 @@ class _UserHomePageState extends State<UserHomePage> {
     if (_pendingPaymentInfo != null) {
       _selectedIndex = 1; // Aller directement à ScanPayPage
     }
-    _loadRecentInvoices();
+
+    // Load invoices using InvoiceViewModel
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authViewModel = context.read<AuthViewModel>();
+      final invoiceViewModel = context.read<InvoiceViewModel>();
+      final userId = authViewModel.currentUser?.uid;
+      if (userId != null) {
+        invoiceViewModel.loadUserInvoices(userId);
+      }
+    });
   }
 
   void showPaymentInfo(PaymentInfo info) {
@@ -48,39 +54,23 @@ class _UserHomePageState extends State<UserHomePage> {
     });
   }
 
-  Future<void> _loadRecentInvoices() async {
-    setState(() => _isLoading = true);
-    try {
-      final userId = context.read<AuthViewModel>().currentUser?.uid;
-      if (userId != null) {
-        final invoices = await InvoiceService().getRecentInvoices(userId, limit: 5);
-        setState(() {
-          _recentInvoices = invoices;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      print('Error loading recent invoices: $e');
-      setState(() => _isLoading = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final orderViewModel = context.watch<OrderViewModel>();
     final authViewModel = context.watch<AuthViewModel>();
     final List<Widget> _pages = [
-      const _HomeContent(),
+      const _HomeContent(pendingPaymentInfo: null),
       ScanPayPage(
-        paymentInfo: _pendingPaymentInfo ?? PaymentInfo(
-          transactionId: 'DEMO',
-          total: 0.0,
-          date: DateTime.now().toString().split(' ')[0],
-          time: DateTime.now().toString().split(' ')[1].substring(0, 5),
-          userId: authViewModel.currentUser?.uid ?? '',
-          invoiceId: 'DEMO',
-          items: [],
-        ),
+        paymentInfo: _pendingPaymentInfo ??
+            PaymentInfo(
+              transactionId: 'DEMO',
+              total: 0.0,
+              date: DateTime.now().toString().split(' ')[0],
+              time: DateTime.now().toString().split(' ')[1].substring(0, 5),
+              userId: authViewModel.currentUser?.uid ?? '',
+              invoiceId: 'DEMO',
+              items: [],
+            ),
       ),
       const order.OrderPage(),
       const AccountPage(),
@@ -98,12 +88,7 @@ class _UserHomePageState extends State<UserHomePage> {
                 icon: const Icon(Icons.logout, color: Colors.brown, size: 28),
                 tooltip: 'Déconnexion',
                 onPressed: () async {
-                  await context.read<AuthViewModel>().signOut();
-                  if (mounted) {
-                    print('User initiated logout. Navigating to /login...');
-                    Navigator.of(context)
-                        .pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
-                  }
+                  await context.read<AuthViewModel>().signOut(context);
                 },
               ),
             ),
@@ -178,15 +163,21 @@ class _UserHomePageState extends State<UserHomePage> {
 }
 
 class _HomeContent extends StatelessWidget {
-  const _HomeContent({Key? key}) : super(key: key);
+  final PaymentInfo? pendingPaymentInfo;
+  const _HomeContent({Key? key, this.pendingPaymentInfo}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthViewModel>().currentUser;
-    final userName =
-        user?.displayName ?? (context.watch<AuthViewModel>().userData?['email'] as String?)?.split('@').first ?? 'User';
+    final userName = user?.displayName ??
+        (context.watch<AuthViewModel>().userData?['email'] as String?)
+            ?.split('@')
+            .first ??
+        'User';
     final orderViewModel = context.watch<OrderViewModel>();
     final favorites = orderViewModel.favorites;
+    final invoiceViewModel = context.watch<InvoiceViewModel>();
+
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -218,26 +209,32 @@ class _HomeContent extends StatelessWidget {
                         ? Image.network(
                             user!.photoURL!,
                             fit: BoxFit.cover,
-                            loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
+                            loadingBuilder: (BuildContext context, Widget child,
+                                ImageChunkEvent? loadingProgress) {
                               if (loadingProgress == null) {
                                 return child;
                               }
                               return Center(
                                 child: CircularProgressIndicator(
-                                  value: loadingProgress.expectedTotalBytes != null
-                                      ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                  value: loadingProgress.expectedTotalBytes !=
+                                          null
+                                      ? loadingProgress.cumulativeBytesLoaded /
+                                          loadingProgress.expectedTotalBytes!
                                       : null,
                                   color: Colors.brown,
                                   strokeWidth: 2.0,
                                 ),
                               );
                             },
-                            errorBuilder: (BuildContext context, Object exception, StackTrace? stackTrace) {
+                            errorBuilder: (BuildContext context,
+                                Object exception, StackTrace? stackTrace) {
                               print('Error loading profile image: $exception');
-                              return const Icon(Icons.person, size: 40, color: Colors.brown);
+                              return const Icon(Icons.person,
+                                  size: 40, color: Colors.brown);
                             },
                           )
-                        : const Icon(Icons.person, size: 40, color: Colors.brown),
+                        : const Icon(Icons.person,
+                            size: 40, color: Colors.brown),
                   ),
                 ),
                 const SizedBox(width: 18),
@@ -417,23 +414,79 @@ class _HomeContent extends StatelessWidget {
                   ),
           ),
           const SizedBox(height: 32),
-          StreamBuilder<List<Invoice>>(
-            stream: Stream.fromFuture(
-              InvoiceService().getRecentInvoices(
-                context.read<AuthViewModel>().currentUser?.uid ?? '',
-                limit: 5,
-              ),
-            ),
-            builder: (context, snapshot) {
-              return RecentInvoicesSection(
-                invoices: snapshot.data ?? [],
-                isLoading: snapshot.connectionState == ConnectionState.waiting,
-              );
-            },
+          RecentInvoicesSection(
+            invoices: invoiceViewModel.userInvoices,
+            isLoading: invoiceViewModel.isLoading,
           ),
           const SizedBox(height: 24),
+          // Section Résumé de la transaction en cours
+          if (pendingPaymentInfo != null) ...[
+            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                'Transaction en attente',
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.brown.shade700,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.orange.withOpacity(0.5)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildInfoRow(
+                      'ID Transaction', pendingPaymentInfo!.transactionId),
+                  const SizedBox(height: 8),
+                  _buildInfoRow('Date', pendingPaymentInfo!.date),
+                  const SizedBox(height: 8),
+                  _buildInfoRow('Heure', pendingPaymentInfo!.time),
+                  const SizedBox(height: 12),
+                  const Divider(color: Colors.orange, height: 20),
+                  _buildInfoRow(
+                    'Total',
+                    '${pendingPaymentInfo!.total.toStringAsFixed(2)} €',
+                    isTotal: true,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value, {bool isTotal = false}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontSize: isTotal ? 16 : 14,
+            fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
+            color: isTotal ? Colors.orange.shade900 : Colors.black87,
+          ),
+        ),
+        Text(
+          value,
+          style: GoogleFonts.poppins(
+            fontSize: isTotal ? 16 : 14,
+            fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
+            color: isTotal ? Colors.orange.shade900 : Colors.black87,
+          ),
+        ),
+      ],
     );
   }
 }

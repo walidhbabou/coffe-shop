@@ -27,10 +27,7 @@ class DefaultFirebaseOptions {
       case TargetPlatform.macOS:
         return macos;
       case TargetPlatform.windows:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for windows - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return windows;
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -49,7 +46,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '1014981934855',
     projectId: 'coffe-shope-72bc2',
     authDomain: 'coffe-shope-72bc2.firebaseapp.com',
-    storageBucket: 'coffe-shope-72bc2.firebasestorage.app',
+    storageBucket: 'coffe-shope-72bc2.appspot.com',
     measurementId: 'G-XXXXXXXXXX',
   );
 
@@ -58,7 +55,7 @@ class DefaultFirebaseOptions {
     appId: '1:1014981934855:android:fe57dc73b166b6e3fc8fa2',
     messagingSenderId: '1014981934855',
     projectId: 'coffe-shope-72bc2',
-    storageBucket: 'coffe-shope-72bc2.firebasestorage.app',
+    storageBucket: 'coffe-shope-72bc2.appspot.com',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
@@ -66,8 +63,9 @@ class DefaultFirebaseOptions {
     appId: '1:1014981934855:ios:fe57dc73b166b6e3fc8fa2',
     messagingSenderId: '1014981934855',
     projectId: 'coffe-shope-72bc2',
-    storageBucket: 'coffe-shope-72bc2.firebasestorage.app',
-    iosClientId: '1014981934855-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX.apps.googleusercontent.com',
+    storageBucket: 'coffe-shope-72bc2.appspot.com',
+    iosClientId:
+        '1014981934855-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX.apps.googleusercontent.com',
     iosBundleId: 'com.example.app',
   );
 
@@ -76,8 +74,17 @@ class DefaultFirebaseOptions {
     appId: '1:1014981934855:ios:fe57dc73b166b6e3fc8fa2',
     messagingSenderId: '1014981934855',
     projectId: 'coffe-shope-72bc2',
-    storageBucket: 'coffe-shope-72bc2.firebasestorage.app',
-    iosClientId: '1014981934855-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX.apps.googleusercontent.com',
+    storageBucket: 'coffe-shope-72bc2.appspot.com',
+    iosClientId:
+        '1014981934855-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX.apps.googleusercontent.com',
     iosBundleId: 'com.example.app',
+  );
+
+  static const FirebaseOptions windows = FirebaseOptions(
+    apiKey: 'AIzaSyArVZo5ghD8svzpDSU8DPtK1XILvus_LAw',
+    appId: '1:1014981934855:windows:fe57dc73b166b6e3fc8fa2',
+    messagingSenderId: '1014981934855',
+    projectId: 'coffe-shope-72bc2',
+    storageBucket: 'coffe-shope-72bc2.appspot.com',
   );
 }

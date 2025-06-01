@@ -29,7 +29,8 @@ class ScanPayPage extends StatefulWidget {
   State<ScanPayPage> createState() => _ScanPayPageState();
 }
 
-class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin {
+class _ScanPayPageState extends State<ScanPayPage>
+    with TickerProviderStateMixin {
   Invoice? _latestInvoice;
   bool _isLoading = true;
   String? _selectedPaymentMethod;
@@ -49,7 +50,7 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-    
+
     _fadeAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
@@ -57,7 +58,7 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
       parent: _animationController,
       curve: Curves.easeInOut,
     ));
-    
+
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0.0, 0.5),
       end: Offset.zero,
@@ -217,6 +218,9 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
     final info = paymentInfo ?? widget.paymentInfo!;
     final orderViewModel = context.read<OrderViewModel>();
 
+    // Debugging print statement
+    debugPrint('ScanPayPage - PaymentInfo: ${info.toMap()}');
+
     return FadeTransition(
       opacity: _fadeAnimation,
       child: SlideTransition(
@@ -298,7 +302,8 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
           ),
           InstructionStep(
             number: '3',
-            text: 'Votre commande sera alors marquée comme payée et votre panier sera vidé',
+            text:
+                'Votre commande sera alors marquée comme payée et votre panier sera vidé',
           ),
         ],
       ),
@@ -338,35 +343,36 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 border: Border.all(
-                  color: _selectedPaymentMethod != null 
-                      ? Colors.green 
+                  color: _selectedPaymentMethod != null
+                      ? Colors.green
                       : Colors.brown.withOpacity(0.3),
                   width: 2,
                 ),
                 borderRadius: BorderRadius.circular(16),
-                color: _selectedPaymentMethod != null 
-                    ? Colors.green.shade50 
+                color: _selectedPaymentMethod != null
+                    ? Colors.green.shade50
                     : Colors.grey.shade50,
               ),
               child: Row(
                 children: [
                   Icon(
-                    _selectedPaymentMethod != null 
-                        ? Icons.check_circle 
+                    _selectedPaymentMethod != null
+                        ? Icons.check_circle
                         : Icons.payment,
-                    color: _selectedPaymentMethod != null 
-                        ? Colors.green 
+                    color: _selectedPaymentMethod != null
+                        ? Colors.green
                         : Colors.brown,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      _selectedPaymentMethod ?? 'Choisir une méthode de paiement',
+                      _selectedPaymentMethod ??
+                          'Choisir une méthode de paiement',
                       style: GoogleFonts.poppins(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
-                        color: _selectedPaymentMethod != null 
-                            ? Colors.green.shade700 
+                        color: _selectedPaymentMethod != null
+                            ? Colors.green.shade700
                             : Colors.brown.shade600,
                       ),
                     ),
@@ -385,7 +391,8 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildActionButtons(BuildContext context, PaymentInfo info, OrderViewModel orderViewModel) {
+  Widget _buildActionButtons(
+      BuildContext context, PaymentInfo info, OrderViewModel orderViewModel) {
     return Column(
       children: [
         SizedBox(
@@ -394,9 +401,12 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
             text: 'Confirmer le paiement',
             color: const Color(0xFF5B8C6A),
             isEnabled: _selectedPaymentMethod != null,
-            onPressed: _selectedPaymentMethod == null ? null : () async {
-              await _handlePaymentConfirmation(context, info, orderViewModel);
-            },
+            onPressed: _selectedPaymentMethod == null
+                ? null
+                : () async {
+                    await _handlePaymentConfirmation(
+                        context, info, orderViewModel);
+                  },
           ),
         ),
         const SizedBox(height: 16),
@@ -413,7 +423,8 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
     );
   }
 
-  Future<void> _handlePaymentConfirmation(BuildContext context, PaymentInfo info, OrderViewModel orderViewModel) async {
+  Future<void> _handlePaymentConfirmation(BuildContext context,
+      PaymentInfo info, OrderViewModel orderViewModel) async {
     try {
       if (_selectedPaymentMethod == null) {
         throw Exception('Veuillez sélectionner une méthode de paiement');
@@ -424,9 +435,9 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
         'paid',
         paymentMethod: _selectedPaymentMethod,
       );
-      
+
       orderViewModel.clearCart();
-      
+
       if (mounted) {
         Navigator.of(context).pushReplacementNamed('/user_home');
         ScaffoldMessenger.of(context).showSnackBar(
@@ -443,7 +454,8 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
             ),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         );
       }
@@ -465,7 +477,8 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
             ),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         );
       }
@@ -606,7 +619,8 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
                               color: Colors.brown,
                               onPressed: () {
                                 Navigator.pop(context);
-                                Navigator.pushNamed(context, '/payment_methods');
+                                Navigator.pushNamed(
+                                    context, '/payment_methods');
                               },
                             ),
                           ],
@@ -622,7 +636,8 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
                         final card = cards[index].data();
                         return PaymentMethodCard(
                           card: card,
-                          onDelete: () => _showDeleteConfirmationDialog(context, cards[index].id),
+                          onDelete: () => _showDeleteConfirmationDialog(
+                              context, cards[index].id),
                           onSelect: () {
                             setState(() {
                               _selectedPaymentMethod = 'Online';
@@ -642,7 +657,8 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
     );
   }
 
-  void _showDeleteConfirmationDialog(BuildContext context, String paymentMethodId) {
+  void _showDeleteConfirmationDialog(
+      BuildContext context, String paymentMethodId) {
     showDialog(
       context: context,
       builder: (context) {
@@ -712,7 +728,8 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
             ),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         );
       }
@@ -734,7 +751,8 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
             ),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         );
       }

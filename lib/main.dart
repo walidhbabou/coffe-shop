@@ -26,13 +26,11 @@ void main() async {
     // Attendre que Firebase soit complètement initialisé
     await Future.delayed(const Duration(seconds: 1));
 
-    // Créer le compte admin si nécessaire
-    await createAdminIfNotExists();
+    // Créer le compte admin si nécessaire (Commenté pour le développement si vous ne voulez pas démarrer sur l'admin)
+    // await createAdminIfNotExists();
 
-    // Initialize AuthViewModel with repository
-    final authRepository = AuthRepository();
+    // Initialize AuthViewModel
     final authViewModel = AuthViewModel();
-    authViewModel.setRepository(authRepository);
 
     // Stocker automatiquement les produits dans Firestore au démarrage
     await ProductService().fetchAndStoreProducts();

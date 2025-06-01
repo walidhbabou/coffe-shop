@@ -127,7 +127,7 @@ class AccountPage extends StatelessWidget {
             icon: Icons.logout,
             title: 'Déconnexion',
             onTap: () async {
-              await authViewModel.signOut();
+              await authViewModel.signOut(context);
               if (context.mounted) {
                 Navigator.of(context).pushReplacementNamed('/');
               }
