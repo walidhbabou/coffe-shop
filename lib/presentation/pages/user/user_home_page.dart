@@ -3,21 +3,27 @@ import 'package:provider/provider.dart';
 import 'package:coffee_shop/domain/viewmodels/auth_viewmodel.dart';
 import '../Scan/scan_pay_page.dart';
 import '../order/order_page.dart' as order;
-import 'account_page.dart';
+import '../profile/account_page.dart';
 import 'package:coffee_shop/domain/viewmodels/order_viewmodel.dart';
 import '../../pages/order/cart_page.dart';
 import '../../widgets/favorite_drink_card.dart';
 import '../../../data/models/payment_info.dart';
+import '../auth/login_page.dart';
+import '../admin/admin_dashboard.dart';
+import '../../../core/constants/app_routes.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../widgets/recent_invoices_section.dart';
+import '../../../domain/viewmodels/invoice_viewmodel.dart';
 
-class ProfileHomePage extends StatefulWidget {
+class UserHomePage extends StatefulWidget {
   final PaymentInfo? pendingPaymentInfo;
-  const ProfileHomePage({Key? key, this.pendingPaymentInfo}) : super(key: key);
+  const UserHomePage({Key? key, this.pendingPaymentInfo}) : super(key: key);
 
   @override
-  State<ProfileHomePage> createState() => _ProfileHomePageState();
+  State<UserHomePage> createState() => _UserHomePageState();
 }
 
-class _ProfileHomePageState extends State<ProfileHomePage> {
+class _UserHomePageState extends State<UserHomePage> {
   int _selectedIndex = 0;
   PaymentInfo? _pendingPaymentInfo;
   bool _isLoggingOut = false;
@@ -29,6 +35,16 @@ class _ProfileHomePageState extends State<ProfileHomePage> {
     if (_pendingPaymentInfo != null) {
       _selectedIndex = 1; // Aller directement à ScanPayPage
     }
+
+    // Load invoices using InvoiceViewModel
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authViewModel = context.read<AuthViewModel>();
+      final invoiceViewModel = context.read<InvoiceViewModel>();
+      final userId = authViewModel.currentUser?.uid;
+      if (userId != null) {
+        invoiceViewModel.loadUserInvoices(userId);
+      }
+    });
   }
 
   void showPaymentInfo(PaymentInfo info) {
@@ -42,26 +58,19 @@ class _ProfileHomePageState extends State<ProfileHomePage> {
   Widget build(BuildContext context) {
     final orderViewModel = context.watch<OrderViewModel>();
     final authViewModel = context.watch<AuthViewModel>();
-    if (authViewModel.currentUser == null && !_isLoggingOut) {
-      _isLoggingOut = true;
-      Future.microtask(() {
-        if (mounted) {
-          Navigator.of(context)
-              .pushNamedAndRemoveUntil('/login', (route) => false);
-        }
-      });
-    }
-    final favorites = orderViewModel.favorites;
     final List<Widget> _pages = [
-      _HomeContent(),
+      const _HomeContent(pendingPaymentInfo: null),
       ScanPayPage(
-        paymentInfo: PaymentInfo(
-          transactionId: _pendingPaymentInfo?.transactionId ?? 'DEMO',
-          total: _pendingPaymentInfo?.total ?? 0.0,
-          date: _pendingPaymentInfo?.date ?? '2024-01-01',
-          time: _pendingPaymentInfo?.time ?? '00:00',
-        ),
-        showOnlyInfo: _pendingPaymentInfo != null,
+        paymentInfo: _pendingPaymentInfo ??
+            PaymentInfo(
+              transactionId: 'DEMO',
+              total: 0.0,
+              date: DateTime.now().toString().split(' ')[0],
+              time: DateTime.now().toString().split(' ')[1].substring(0, 5),
+              userId: authViewModel.currentUser?.uid ?? '',
+              invoiceId: 'DEMO',
+              items: [],
+            ),
       ),
       const order.OrderPage(),
       const AccountPage(),
@@ -71,8 +80,7 @@ class _ProfileHomePageState extends State<ProfileHomePage> {
       body: Stack(
         children: [
           _pages[_selectedIndex],
-          if (_selectedIndex ==
-              0) // Affiche le bouton seulement sur l'accueil du profil
+          if (_selectedIndex == 0)
             Positioned(
               top: 36,
               right: 24,
@@ -80,11 +88,7 @@ class _ProfileHomePageState extends State<ProfileHomePage> {
                 icon: const Icon(Icons.logout, color: Colors.brown, size: 28),
                 tooltip: 'Déconnexion',
                 onPressed: () async {
-                  await context.read<AuthViewModel>().signOut();
-                  if (mounted) {
-                    Navigator.of(context)
-                        .pushNamedAndRemoveUntil('/login', (route) => false);
-                  }
+                  await context.read<AuthViewModel>().signOut(context);
                 },
               ),
             ),
@@ -159,15 +163,21 @@ class _ProfileHomePageState extends State<ProfileHomePage> {
 }
 
 class _HomeContent extends StatelessWidget {
-  const _HomeContent({Key? key}) : super(key: key);
+  final PaymentInfo? pendingPaymentInfo;
+  const _HomeContent({Key? key, this.pendingPaymentInfo}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthViewModel>().currentUser;
-    final userName =
-        user?.displayName ?? user?.email?.split('@').first ?? 'User';
+    final userName = user?.displayName ??
+        (context.watch<AuthViewModel>().userData?['email'] as String?)
+            ?.split('@')
+            .first ??
+        'User';
     final orderViewModel = context.watch<OrderViewModel>();
     final favorites = orderViewModel.favorites;
+    final invoiceViewModel = context.watch<InvoiceViewModel>();
+
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -190,13 +200,42 @@ class _HomeContent extends StatelessWidget {
             ),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 32,
-                  backgroundImage: user?.photoURL != null
-                      ? NetworkImage(user!.photoURL!)
-                      : const NetworkImage(
-                          'https://randomuser.me/api/portraits/men/32.jpg'),
-                  backgroundColor: Colors.brown.shade100,
+                ClipOval(
+                  child: Container(
+                    width: 56,
+                    height: 56,
+                    color: Colors.brown.shade100,
+                    child: user?.photoURL != null
+                        ? Image.network(
+                            user!.photoURL!,
+                            fit: BoxFit.cover,
+                            loadingBuilder: (BuildContext context, Widget child,
+                                ImageChunkEvent? loadingProgress) {
+                              if (loadingProgress == null) {
+                                return child;
+                              }
+                              return Center(
+                                child: CircularProgressIndicator(
+                                  value: loadingProgress.expectedTotalBytes !=
+                                          null
+                                      ? loadingProgress.cumulativeBytesLoaded /
+                                          loadingProgress.expectedTotalBytes!
+                                      : null,
+                                  color: Colors.brown,
+                                  strokeWidth: 2.0,
+                                ),
+                              );
+                            },
+                            errorBuilder: (BuildContext context,
+                                Object exception, StackTrace? stackTrace) {
+                              print('Error loading profile image: $exception');
+                              return const Icon(Icons.person,
+                                  size: 40, color: Colors.brown);
+                            },
+                          )
+                        : const Icon(Icons.person,
+                            size: 40, color: Colors.brown),
+                  ),
                 ),
                 const SizedBox(width: 18),
                 Expanded(
@@ -227,7 +266,6 @@ class _HomeContent extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          const SizedBox(height: 32),
           const Text(
             'Your favorites',
             style: TextStyle(
@@ -375,8 +413,80 @@ class _HomeContent extends StatelessWidget {
                     },
                   ),
           ),
+          const SizedBox(height: 32),
+          RecentInvoicesSection(
+            invoices: invoiceViewModel.userInvoices,
+            isLoading: invoiceViewModel.isLoading,
+          ),
+          const SizedBox(height: 24),
+          // Section Résumé de la transaction en cours
+          if (pendingPaymentInfo != null) ...[
+            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                'Transaction en attente',
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.brown.shade700,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.orange.withOpacity(0.5)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildInfoRow(
+                      'ID Transaction', pendingPaymentInfo!.transactionId),
+                  const SizedBox(height: 8),
+                  _buildInfoRow('Date', pendingPaymentInfo!.date),
+                  const SizedBox(height: 8),
+                  _buildInfoRow('Heure', pendingPaymentInfo!.time),
+                  const SizedBox(height: 12),
+                  const Divider(color: Colors.orange, height: 20),
+                  _buildInfoRow(
+                    'Total',
+                    '${pendingPaymentInfo!.total.toStringAsFixed(2)} €',
+                    isTotal: true,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value, {bool isTotal = false}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontSize: isTotal ? 16 : 14,
+            fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
+            color: isTotal ? Colors.orange.shade900 : Colors.black87,
+          ),
+        ),
+        Text(
+          value,
+          style: GoogleFonts.poppins(
+            fontSize: isTotal ? 16 : 14,
+            fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
+            color: isTotal ? Colors.orange.shade900 : Colors.black87,
+          ),
+        ),
+      ],
     );
   }
 }

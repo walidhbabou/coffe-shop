@@ -4,6 +4,8 @@ import '../../../domain/viewmodels/order_viewmodel.dart';
 import '../../widgets/drink_card.dart';
 import '../../../data/models/payment_info.dart';
 import '../scan/scan_pay_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../../data/services/user_data_service.dart';
 import 'dart:math';
 
 // Ajout d'un commentaire pour forcer la réanalyse
@@ -31,7 +33,7 @@ class PaymentPage extends StatelessWidget {
     final orderViewModel = context.watch<OrderViewModel>();
     final cartEntries = orderViewModel.cartEntries;
     final total = cartEntries.fold<double>(
-      0, (sum, entry) => sum + (entry.key.price ?? 0) * entry.value);
+        0, (sum, entry) => sum + (entry.key.price ?? 0) * entry.value);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Pembayaran'),
@@ -52,20 +54,32 @@ class PaymentPage extends StatelessWidget {
                   return Card(
                     child: ListTile(
                       leading: Hero(
-                        tag: 'product-${drink.name}-image',
+                        tag: 'product-${drink.id}-${drink.name}-image',
                         child: drink.imagePath.startsWith('http')
-                            ? Image.network(drink.imagePath, width: 48, height: 48, fit: BoxFit.cover,
-                                loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
+                            ? Image.network(
+                                drink.imagePath,
+                                width: 48,
+                                height: 48,
+                                fit: BoxFit.cover,
+                                loadingBuilder: (BuildContext context,
+                                    Widget child,
+                                    ImageChunkEvent? loadingProgress) {
                                   if (loadingProgress == null) return child;
                                   return Center(
                                     child: CircularProgressIndicator(
-                                      value: loadingProgress.expectedTotalBytes != null
-                                          ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                                          : null,
+                                      value:
+                                          loadingProgress.expectedTotalBytes !=
+                                                  null
+                                              ? loadingProgress
+                                                      .cumulativeBytesLoaded /
+                                                  loadingProgress
+                                                      .expectedTotalBytes!
+                                              : null,
                                     ),
                                   );
                                 },
-                                errorBuilder: (BuildContext context, Object exception, StackTrace? stackTrace) {
+                                errorBuilder: (BuildContext context,
+                                    Object exception, StackTrace? stackTrace) {
                                   return Icon(
                                     Icons.fastfood,
                                     color: Colors.grey,
@@ -73,10 +87,12 @@ class PaymentPage extends StatelessWidget {
                                   );
                                 },
                               )
-                            : Image.asset(drink.imagePath, width: 48, height: 48, fit: BoxFit.cover),
+                            : Image.asset(drink.imagePath,
+                                width: 48, height: 48, fit: BoxFit.cover),
                       ),
                       title: Text(drink.name),
-                      subtitle: Text('${drink.price?.toStringAsFixed(0) ?? ''} x $quantity'),
+                      subtitle: Text(
+                          '${drink.price?.toStringAsFixed(0) ?? ''} x $quantity'),
                       trailing: Text('${(drink.price ?? 0) * quantity}'),
                     ),
                   );
@@ -92,13 +108,18 @@ class PaymentPage extends StatelessWidget {
                 border: Border.all(color: Colors.brown),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Text('Cash', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: const Text('Cash',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Total', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                Text('${total.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                const Text('Total',
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                Text('${total.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 18)),
               ],
             ),
             const SizedBox(height: 16),
@@ -106,7 +127,7 @@ class PaymentPage extends StatelessWidget {
               width: double.infinity,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-                onPressed: () {
+                onPressed: () async {
                   final transactionId = _generateTransactionId();
                   final date = _getCurrentDate();
                   final time = _getCurrentTime();
@@ -118,8 +139,16 @@ class PaymentPage extends StatelessWidget {
                           total: total,
                           date: date,
                           time: time,
+                          userId: FirebaseAuth.instance.currentUser?.uid ?? '',
+                          invoiceId: 'INV${transactionId}',
+                          items: cartEntries
+                              .map((entry) => {
+                                    'name': entry.key.name,
+                                    'quantity': entry.value,
+                                    'price': entry.key.price ?? 0,
+                                  })
+                              .toList(),
                         ),
-                        showOnlyInfo: false,
                       ),
                     ),
                   );
@@ -132,4 +161,4 @@ class PaymentPage extends StatelessWidget {
       ),
     );
   }
-} 
+}

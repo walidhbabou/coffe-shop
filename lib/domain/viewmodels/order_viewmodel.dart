@@ -12,6 +12,8 @@ class OrderViewModel extends ChangeNotifier {
   List<Map<String, dynamic>> _orders = [];
   bool _isLoading = false;
   String? _error;
+  bool _isCartLocked = false;
+  bool _isFirstValidation = false;
 
   List<Drink> get drinks => _drinks;
   List<Drink> get favorites =>
@@ -19,9 +21,12 @@ class OrderViewModel extends ChangeNotifier {
   Map<String, int> get cart => _cart;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  bool get isCartLocked => _isCartLocked;
+  bool get isFirstValidation => _isFirstValidation;
 
   OrderViewModel() {
     fetchProducts();
+    loadUserData();
   }
 
   Future<void> fetchProducts() async {
@@ -29,9 +34,9 @@ class OrderViewModel extends ChangeNotifier {
     _error = null;
     notifyListeners();
     try {
-      final products = await _productService.fetchProducts();
-      _drinks =
-          products.map((drink) => Drink.fromJson(drink.toJson())).toList();
+      // Récupérer les produits depuis Firestore au lieu de l'API
+      final products = await _productService.fetchProductsFromFirestore();
+      _drinks = products.map((drink) => Drink.fromJson(drink.toJson())).toList();
     } catch (e) {
       _error = e.toString();
     }
@@ -79,13 +84,15 @@ class OrderViewModel extends ChangeNotifier {
   }
 
   void addToCart(String drinkId) {
-    _cart.update(drinkId, (q) => q + 1, ifAbsent: () => 1);
-    UserDataService.saveCart(_cart);
-    notifyListeners();
+    if (!_isCartLocked) {
+      _cart.update(drinkId, (q) => q + 1, ifAbsent: () => 1);
+      UserDataService.saveCart(_cart);
+      notifyListeners();
+    }
   }
 
   void removeFromCart(String drinkId) {
-    if (_cart.containsKey(drinkId)) {
+    if (!_isCartLocked && _cart.containsKey(drinkId)) {
       if (_cart[drinkId]! > 1) {
         _cart[drinkId] = _cart[drinkId]! - 1;
       } else {
@@ -96,11 +103,42 @@ class OrderViewModel extends ChangeNotifier {
     }
   }
 
+  void removeAllFromCart(String drinkId) {
+    if (!_isCartLocked && _cart.containsKey(drinkId)) {
+      _cart.remove(drinkId);
+      UserDataService.saveCart(_cart);
+      notifyListeners();
+    }
+  }
+
+  Future<void> lockCart() async {
+    _isCartLocked = true;
+    notifyListeners();
+  }
+
+  Future<void> unlockCart() async {
+    _isCartLocked = false;
+    _isFirstValidation = false;
+    notifyListeners();
+  }
+
   Future<void> addOrder(double total) async {
     await UserDataService.addOrder(_cart, total);
     _orders = await UserDataService.loadOrders();
     _cart.clear();
+    _isCartLocked = false;
     UserDataService.saveCart(_cart);
+    notifyListeners();
+  }
+
+  Future<void> firstValidation() async {
+    _isFirstValidation = true;
+    notifyListeners();
+  }
+
+  Future<void> finalValidation() async {
+    _isCartLocked = true;
+    _isFirstValidation = false;
     notifyListeners();
   }
 }
