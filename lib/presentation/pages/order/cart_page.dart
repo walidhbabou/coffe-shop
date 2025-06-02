@@ -43,7 +43,6 @@ class _CartPageState extends State<CartPage> {
 
   @override
   void dispose() {
-    // Déverrouiller le panier quand on quitte la page
     context.read<OrderViewModel>().unlockCart();
     super.dispose();
   }
@@ -56,7 +55,6 @@ class _CartPageState extends State<CartPage> {
         0, (sum, entry) => sum + (entry.key.price ?? 0) * entry.value);
     final isLocked = orderViewModel.isCartLocked;
 
-    // Enhanced debugging (Optional - can be removed later)
     debugPrint('=== CartPage Debug Info ===');
     debugPrint('isCartLocked: ${orderViewModel.isCartLocked}');
     debugPrint('authViewModel.currentUser: ${authViewModel.currentUser}');
@@ -75,7 +73,6 @@ class _CartPageState extends State<CartPage> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            // Déverrouiller le panier avant de quitter
             orderViewModel.unlockCart();
             Navigator.of(context).pop();
           },
@@ -94,7 +91,6 @@ class _CartPageState extends State<CartPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Suivi de commande
                         Container(
                           padding: const EdgeInsets.all(24),
                           margin: const EdgeInsets.only(bottom: 24),
@@ -130,7 +126,6 @@ class _CartPageState extends State<CartPage> {
                             ],
                           ),
                         ),
-                        // Liste des produits du panier
                         ...orderViewModel.cartEntries.map((entry) {
                           final drink = entry.key;
                           final quantity = entry.value;
