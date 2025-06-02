@@ -29,9 +29,9 @@ class OrderViewModel extends ChangeNotifier {
     _error = null;
     notifyListeners();
     try {
-      final products = await _productService.fetchProducts();
-      _drinks =
-          products.map((drink) => Drink.fromJson(drink.toJson())).toList();
+      // Récupérer les produits depuis Firestore au lieu de l'API
+      final products = await _productService.fetchProductsFromFirestore();
+      _drinks = products.map((drink) => Drink.fromJson(drink.toJson())).toList();
     } catch (e) {
       _error = e.toString();
     }

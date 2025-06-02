@@ -37,4 +37,10 @@ class ProductService {
     await storeProductsInFirestore(products);
     return products;
   }
+
+  /// Récupère les produits depuis Firestore
+  Future<List<Drink>> fetchProductsFromFirestore() async {
+    final snapshot = await FirebaseFirestore.instance.collection('products').get();
+    return snapshot.docs.map((doc) => Drink.fromJson(doc.data())).toList();
+  }
 }
