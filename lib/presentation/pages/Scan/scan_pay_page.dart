@@ -74,6 +74,7 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
           _isLoading = false;
         });
         _animationController.forward();
+        
       }
     } catch (e) {
       debugPrint('Error loading latest invoice: $e');
