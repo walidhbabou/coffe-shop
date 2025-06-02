@@ -110,15 +110,33 @@ class InvoiceService {
     });
   }
 
-  // Get all invoices (for admin)
-  Stream<List<Invoice>> getAllInvoices() {
+  // Get all invoices (for admin) with pagination
+  Stream<List<Invoice>> getAllInvoices({int limit = 10}) {
     return _firestore
         .collection(_collection)
         .orderBy('createdAt', descending: true)
+        .limit(limit)
         .snapshots()
         .map((snapshot) {
       return snapshot.docs.map((doc) => Invoice.fromFirestore(doc)).toList();
     });
+  }
+
+  // Get more invoices for pagination
+  Future<List<Invoice>> getMoreInvoices(DocumentSnapshot lastDocument, {int limit = 10}) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection(_collection)
+          .orderBy('createdAt', descending: true)
+          .startAfterDocument(lastDocument)
+          .limit(limit)
+          .get();
+
+      return querySnapshot.docs.map((doc) => Invoice.fromFirestore(doc)).toList();
+    } catch (e) {
+      print('Error getting more invoices: $e');
+      rethrow;
+    }
   }
 
   // Get a specific invoice by ID

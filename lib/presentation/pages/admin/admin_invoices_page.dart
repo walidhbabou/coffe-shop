@@ -5,10 +5,30 @@ import 'package:intl/intl.dart';
 import '../../../data/models/invoice_model.dart';
 import '../../../services/invoice_service.dart';
 
-class AdminInvoicesPage extends StatelessWidget {
-  final InvoiceService _invoiceService = InvoiceService();
-  
+class AdminInvoicesPage extends StatefulWidget {
   AdminInvoicesPage({Key? key}) : super(key: key);
+
+  @override
+  State<AdminInvoicesPage> createState() => _AdminInvoicesPageState();
+}
+
+class _AdminInvoicesPageState extends State<AdminInvoicesPage> {
+  final InvoiceService _invoiceService = InvoiceService();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  List<Invoice> _invoices = [];
+  bool _isLoading = false;
+  DocumentSnapshot? _lastDocument;
+  static const int _limit = 10;
+  bool _hasMore = true;
+
+  Future<void> _updateLastDocument() async {
+    if (_invoices.isNotEmpty) {
+      _lastDocument = await _firestore
+          .collection('invoices')
+          .doc(_invoices.last.id)
+          .get();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +49,7 @@ class AdminInvoicesPage extends StatelessWidget {
         ),
       ),
       body: StreamBuilder<List<Invoice>>(
-        stream: _invoiceService.getAllInvoices(),
+        stream: _invoiceService.getAllInvoices(limit: _limit),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return Center(
@@ -44,9 +64,16 @@ class AdminInvoicesPage extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final invoices = snapshot.data!;
+          // Mettre à jour la liste des factures
+          if (_invoices.isEmpty) {
+            _invoices = snapshot.data!;
+            // Initialiser le dernier document
+            if (_invoices.isNotEmpty) {
+              _updateLastDocument();
+            }
+          }
 
-          if (invoices.isEmpty) {
+          if (_invoices.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -69,106 +96,179 @@ class AdminInvoicesPage extends StatelessWidget {
             );
           }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: invoices.length,
-            itemBuilder: (context, index) {
-              final invoice = invoices[index];
-              return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.all(16),
-                  title: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF3B82F6).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.receipt_rounded,
-                          color: Color(0xFF3B82F6),
-                          size: 20,
-                        ),
+          return Column(
+            children: [
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _invoices.length,
+                  itemBuilder: (context, index) {
+                    final invoice = _invoices[index];
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.04),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.all(16),
+                        title: Row(
                           children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF3B82F6).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.receipt_rounded,
+                                color: Color(0xFF3B82F6),
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Facture #${invoice.id.substring(0, 8)}',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFF1F2937),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        '${invoice.date} à ${invoice.time}',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 14,
+                                          color: const Color(0xFF6B7280),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Invoice.getStatusColor(invoice.status)
+                                              .withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          Invoice.getStatusText(invoice.status),
+                                          style: GoogleFonts.inter(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500,
+                                            color: Invoice.getStatusColor(invoice.status),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
                             Text(
-                              'Facture #${invoice.id.substring(0, 8)}',
+                              '${invoice.total.toStringAsFixed(2)} €',
                               style: GoogleFonts.inter(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
-                                color: const Color(0xFF1F2937),
+                                color: const Color(0xFF10B981),
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                Text(
-                                  '${invoice.date} à ${invoice.time}',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 14,
-                                    color: const Color(0xFF6B7280),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Invoice.getStatusColor(invoice.status)
-                                        .withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    Invoice.getStatusText(invoice.status),
-                                    style: GoogleFonts.inter(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                      color: Invoice.getStatusColor(invoice.status),
-                                    ),
-                                  ),
-                                ),
-                              ],
                             ),
                           ],
                         ),
+                        onTap: () => _showInvoiceDetails(context, invoice),
                       ),
-                      Text(
-                        '${invoice.total.toStringAsFixed(2)} €',
-                        style: GoogleFonts.inter(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF10B981),
-                        ),
-                      ),
-                    ],
-                  ),
-                  onTap: () => _showInvoiceDetails(context, invoice),
+                    );
+                  },
                 ),
-              );
-            },
+              ),
+              if (_hasMore)
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _loadMore,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF3B82F6),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      minimumSize: const Size(double.infinity, 48),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : Text(
+                            'Voir plus',
+                            style: GoogleFonts.inter(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white,
+                            ),
+                          ),
+                  ),
+                ),
+            ],
           );
         },
       ),
     );
+  }
+
+  Future<void> _loadMore() async {
+    if (_isLoading || !_hasMore || _lastDocument == null) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final moreInvoices = await _invoiceService.getMoreInvoices(_lastDocument!, limit: _limit);
+      
+      if (moreInvoices.isEmpty) {
+        setState(() {
+          _hasMore = false;
+        });
+      } else {
+        setState(() {
+          _invoices.addAll(moreInvoices);
+        });
+        // Mettre à jour le dernier document
+        await _updateLastDocument();
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erreur lors du chargement: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   void _showInvoiceDetails(BuildContext context, Invoice invoice) {
