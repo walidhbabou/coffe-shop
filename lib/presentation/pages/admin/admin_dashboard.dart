@@ -128,46 +128,51 @@ class AdminDashboard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    ActionButton(
-                      title: 'Gérer les Produits',
-                      icon: Icons.inventory_2_rounded,
-                      color: const Color(0xFF3B82F6),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const AdminProductsPage(),
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    ActionButton(
-                      title: 'Gérer les Utilisateurs',
-                      icon: Icons.people_rounded,
-                      color: const Color(0xFF10B981),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const AdminUsersPage(),
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    ActionButton(
-                      title: 'Gérer les Factures',
-                      icon: Icons.receipt_long_rounded,
-                      color: const Color(0xFF8B5CF6),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const AdminInvoicesPage(),
-                          ),
-                        );
-                      },
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ActionButton(
+                          title: 'Gérer les Produits',
+                          icon: Icons.inventory_2_rounded,
+                          color: const Color(0xFF3B82F6),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const AdminProductsPage(),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        ActionButton(
+                          title: 'Gérer les Utilisateurs',
+                          icon: Icons.people_rounded,
+                          color: const Color(0xFF10B981),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const AdminUsersPage(),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        ActionButton(
+                          title: 'Gérer les Factures',
+                          icon: Icons.receipt_long_rounded,
+                          color: const Color(0xFF8B5CF6),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const AdminInvoicesPage(),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
                     ),
                   ],
                 ),

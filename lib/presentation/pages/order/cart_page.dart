@@ -5,14 +5,12 @@ import '../../../data/models/drink.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../data/models/payment_info.dart';
 import 'cart_page.dart';
-// import '../Scan/scan_pay_page.dart';
 import '../user/user_home_page.dart';
-// import 'payment_page.dart';
-// import '../scan/qr_transaction_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../services/invoice_service.dart';
 import '../../../data/models/invoice_model.dart';
 import '../../../domain/viewmodels/auth_viewmodel.dart';
+import '../Scan/scan_pay_page.dart';
 
 class CartPage extends StatefulWidget {
   final void Function(PaymentInfo)? onPay;
@@ -335,7 +333,7 @@ class _CartPageState extends State<CartPage> {
                                     })
                                 .toList();
 
-                            widget.onPay!(PaymentInfo(
+                            final paymentInfo = PaymentInfo(
                               transactionId: transactionId,
                               total: total,
                               date: date,
@@ -344,7 +342,19 @@ class _CartPageState extends State<CartPage> {
                               invoiceId:
                                   'INV-${DateTime.now().millisecondsSinceEpoch}',
                               items: items,
-                            ));
+                            );
+
+                            widget.onPay!(paymentInfo);
+                            
+                            // Redirection vers la page de paiement
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ScanPayPage(
+                                  paymentInfo: paymentInfo,
+                                ),
+                              ),
+                            );
                           }
                         }
                       : null,
