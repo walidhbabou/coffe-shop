@@ -157,6 +157,30 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
   Widget _buildPaymentInfo(PaymentInfo info) {
     debugPrint('ScanPayPage - PaymentInfo: ${info.toMap()}');
     
+    // Si le panier est vide, afficher un message et ne pas permettre le paiement
+    if (info.items.isEmpty) {
+      return _buildAnimatedContent(
+        Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildIconContainer(Icons.shopping_cart_outlined),
+              const SizedBox(height: 24),
+              _buildText('Panier vide', fontSize: 20, isBold: true),
+              const SizedBox(height: 8),
+              _buildText('Vous ne pouvez pas effectuer de paiement avec un panier vide', color: Colors.red),
+              const SizedBox(height: 32),
+              StyledButton(
+                text: 'Retour',
+                color: _primaryColor,
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    
     return _buildAnimatedContent(
       SingleChildScrollView(
         padding: const EdgeInsets.all(24),
