@@ -5,14 +5,12 @@ import '../../../data/models/drink.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../data/models/payment_info.dart';
 import 'cart_page.dart';
-// import '../Scan/scan_pay_page.dart'; 
 import '../user/user_home_page.dart';
-// import 'payment_page.dart'; 
-// import '../scan/qr_transaction_page.dart'; 
-import 'package:firebase_auth/firebase_auth.dart'; 
-import '../../../services/invoice_service.dart'; 
-import '../../../data/models/invoice_model.dart'; 
-import '../../../domain/viewmodels/auth_viewmodel.dart'; 
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../../services/invoice_service.dart';
+import '../../../data/models/invoice_model.dart';
+import '../../../domain/viewmodels/auth_viewmodel.dart';
+import '../Scan/scan_pay_page.dart';
 
 class CartPage extends StatefulWidget {
   final void Function(PaymentInfo)? onPay;
@@ -23,10 +21,7 @@ class CartPage extends StatefulWidget {
 }
 
 class _CartPageState extends State<CartPage> {
-  int orderStep = 0; // 0: modifiable, 1: validé, 2: prêt à payer
-  bool isValidated = false;
-  bool isPayEnabled = false;
-  String transactionId = 'V'+DateTime.now().millisecondsSinceEpoch.toString(); // Generate dynamic transaction ID
+  String transactionId = 'V' + DateTime.now().millisecondsSinceEpoch.toString();
   String date = '';
   String time = '';
 
@@ -38,8 +33,17 @@ class _CartPageState extends State<CartPage> {
 
   void _updateDateTime() {
     final now = DateTime.now();
-    date = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
-    time = "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}";
+    date =
+        "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+    time =
+        "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}";
+  }
+
+  @override
+  void dispose() {
+    // Déverrouiller le panier quand on quitte la page
+    context.read<OrderViewModel>().unlockCart();
+    super.dispose();
   }
 
   @override
@@ -48,27 +52,29 @@ class _CartPageState extends State<CartPage> {
     final authViewModel = context.watch<AuthViewModel>();
     final total = orderViewModel.cartEntries.fold<double>(
         0, (sum, entry) => sum + (entry.key.price ?? 0) * entry.value);
-    final isLocked = orderStep >= 2;
+    final isLocked = orderViewModel.isCartLocked;
 
     // Enhanced debugging (Optional - can be removed later)
     debugPrint('=== CartPage Debug Info ===');
-    debugPrint('orderStep: $orderStep');
-    debugPrint('isPayEnabled: $isPayEnabled');
+    debugPrint('isCartLocked: ${orderViewModel.isCartLocked}');
     debugPrint('authViewModel.currentUser: ${authViewModel.currentUser}');
     debugPrint('authViewModel.isLoggedIn: ${authViewModel.isLoggedIn}');
     debugPrint('Firebase current user: ${FirebaseAuth.instance.currentUser}');
-    debugPrint('Pay button enabled: ${isPayEnabled && authViewModel.isLoggedIn}');
+    debugPrint('Cart is empty: ${orderViewModel.cartEntries.isEmpty}');
     debugPrint('========================');
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Votre Panier', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+        title: Text('Votre Panier',
+            style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
         foregroundColor: Colors.brown,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
+            // Déverrouiller le panier avant de quitter
+            orderViewModel.unlockCart();
             Navigator.of(context).pop();
           },
         ),
@@ -146,7 +152,8 @@ class _CartPageState extends State<CartPage> {
                                 ClipRRect(
                                   borderRadius: BorderRadius.circular(12),
                                   child: drink.imagePath.startsWith('http')
-                                      ? Image.network(drink.imagePath,
+                                      ? Image.network(
+                                          drink.imagePath,
                                           width: MediaQuery.of(context)
                                                   .size
                                                   .width *
@@ -156,15 +163,17 @@ class _CartPageState extends State<CartPage> {
                                                   .width *
                                               0.18,
                                           fit: BoxFit.cover,
-                                          errorBuilder: (context, error, stackTrace) => Icon(Icons.coffee_maker_outlined, size: 60, color: Colors.brown[300]),
+                                          errorBuilder: (context, error,
+                                                  stackTrace) =>
+                                              Icon(Icons.coffee_maker_outlined,
+                                                  size: 60,
+                                                  color: Colors.brown[300]),
                                         )
-                                      : Image.asset(
-                                          drink.imagePath,
-                                          width:
-                                              MediaQuery.of(context)
-                                                      .size
-                                                      .width *
-                                                  0.18,
+                                      : Image.asset(drink.imagePath,
+                                          width: MediaQuery.of(context)
+                                                  .size
+                                                  .width *
+                                              0.18,
                                           height: MediaQuery.of(context)
                                                   .size
                                                   .width *
@@ -200,28 +209,28 @@ class _CartPageState extends State<CartPage> {
                                           color: Colors.brown),
                                       onPressed: isLocked
                                           ? null
-                                          : () {
-                                              orderViewModel
-                                                  .removeFromCart(drink.id);
-                                            },
+                                          : () => orderViewModel
+                                              .removeFromCart(drink.id),
                                     ),
                                     Text('$quantity',
-                                        style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold)),
+                                        style: const TextStyle(
+                                            fontSize: 16.0,
+                                            fontWeight: FontWeight.bold)),
                                     IconButton(
                                       icon: const Icon(Icons.add_circle_outline,
                                           color: Colors.brown),
                                       onPressed: isLocked
                                           ? null
-                                          : () {
-                                              orderViewModel
-                                                  .addToCart(drink.id);
-                                            },
+                                          : () => orderViewModel
+                                              .addToCart(drink.id),
                                     ),
                                     IconButton(
-                                      icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                                      onPressed: () {
-                                        orderViewModel.removeAllFromCart(drink.id);
-                                      },
+                                      icon: const Icon(Icons.delete_outline,
+                                          color: Colors.redAccent),
+                                      onPressed: isLocked
+                                          ? null
+                                          : () => orderViewModel
+                                              .removeAllFromCart(drink.id),
                                     ),
                                   ],
                                 ),
@@ -249,295 +258,199 @@ class _CartPageState extends State<CartPage> {
                                 Text('${total.toStringAsFixed(2)} €',
                                     style: GoogleFonts.poppins(
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 20,
-                                        color: Colors.brown)),
+                                        fontSize: 20)),
                               ],
                             ),
-                          ),
-                        ),
-                        // Bouton Valider
-                        ElevatedButton(
-                          onPressed: isLocked
-                              ? null
-                              : () {
-                                  setState(() {
-                                    orderStep++;
-                                    if (orderStep >= 2) {
-                                      isPayEnabled = true;
-                                    }
-                                  });
-                                },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF5B8C6A),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16)),
-                            padding: const EdgeInsets.symmetric(vertical: 18),
-                            minimumSize: Size(
-                                MediaQuery.of(context).size.width * 0.7, 50),
-                          ),
-                          child: Text(
-                            orderStep < 2 ? 'Valider' : 'Commande validée',
-                            style: GoogleFonts.poppins(
-                                fontSize: 18, color: Colors.white),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        // Infos transaction
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.brown.withOpacity(0.06),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Transaction ID',
-                                      style: GoogleFonts.poppins(
-                                          fontWeight: FontWeight.bold)),
-                                  Text(transactionId,
-                                      style: GoogleFonts.poppins()),
-                                ],
-                              ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Date',
-                                      style: GoogleFonts.poppins(
-                                          fontWeight: FontWeight.bold)),
-                                  Text(date, style: GoogleFonts.poppins()),
-                                ],
-                              ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Time',
-                                      style: GoogleFonts.poppins(
-                                          fontWeight: FontWeight.bold)),
-                                  Text(time, style: GoogleFonts.poppins()),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        // Bouton Pay (remplace Review Receipt)
-                        // Integration of provided Pay button enhancements and invoice saving logic
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(horizontal: 0), // Adjusted padding
-                          child: Column(
-                            children: [
-                              // Debug info card (remove in production)
-                              // if (kDebugMode) // kDebugMode requires import 'package:flutter/foundation.dart';
-                              //   Card(
-                              //     color: Colors.yellow[100],
-                              //     child: Padding(
-                              //       padding: const EdgeInsets.all(8.0),
-                              //       child: Column(
-                              //         crossAxisAlignment: CrossAxisAlignment.start,
-                              //         children: [
-                              //           Text('Debug Info:', style: TextStyle(fontWeight: FontWeight.bold)),
-                              //           Text('Order Step: $orderStep'),
-                              //           Text('Pay Enabled: $isPayEnabled'),
-                              //           Text('User Logged In: ${authViewModel.isLoggedIn}'),
-                              //           Text('Current User: ${authViewModel.currentUser?.email ?? 'null'}'),
-                              //           Text('Button Should Be Enabled: ${isPayEnabled && authViewModel.isLoggedIn}'),
-                              //         ],
-                              //       ),
-                              //     ),
-                              //   ),
-                              const SizedBox(height: 16),
-
-                              // Pay button with better feedback
-                              ElevatedButton(
-                                onPressed: (isPayEnabled && authViewModel.isLoggedIn)
-                                    ? () async {
-                                        // Your existing payment logic here
-                                        // final paymentInfo = PaymentInfo(
-                                        //   transactionId: transactionId,
-                                        //   total: total,
-                                        //   date: formattedDate,
-                                        //   time: formattedTime,
-                                        // );
-
-                                        // Get current user ID
-                                        final userId = authViewModel.currentUser?.uid;
-                                        if (userId == null) {
-                                           print('Error: User not logged in. Cannot save invoice.');
-                                           // Show an error to the user
-                                           ScaffoldMessenger.of(context).showSnackBar(
-                                             const SnackBar(
-                                               content: Text('Veuillez vous connecter pour passer commande.'),
-                                               backgroundColor: Colors.red,
-                                             ),
-                                           );
-                                           return;
-                                        }
-
-                                        // Get cart items and total
-                                        final cartItems = orderViewModel.cartEntries.map((entry) => {
-                                          'drinkId': entry.key.id,
-                                          'quantity': entry.value,
-                                          'price': entry.key.price,
-                                          'name': entry.key.name,
-                                        }).toList();
-
-                                        // Create Invoice object
-                                        final invoice = Invoice(
-                                          userId: userId,
-                                          transactionId: transactionId, // Use the generated transactionId
-                                          total: total,
-                                          date: date, // Use the formatted date
-                                          time: time, // Use the formatted time
-                                          items: cartItems,
-                                          createdAt: DateTime.now(),
-                                          status: 'pending', // Set initial status
-                                        );
-
-                                        try {
-                                          // Save invoice to Firestore
-                                          final invoiceId = await InvoiceService().createInvoice(invoice);
-                                          print('Invoice saved with ID: $invoiceId');
-
-                                          // Create PaymentInfo object to pass to ScanPayPage
-                                          final paymentInfo = PaymentInfo(
-                                             transactionId: transactionId,
-                                             total: total,
-                                             date: date,
-                                             time: time,
-                                             userId: userId, // Pass userId
-                                             invoiceId: invoiceId, // Pass the created invoice ID
-                                             items: cartItems, // Pass cart items
-                                          );
-
-                                          // Navigate to ScanPayPage, passing paymentInfo
-                                          Navigator.of(context).pushNamed('/scan_pay', arguments: paymentInfo);
-
-                                        } catch (e) {
-                                           print('Error saving invoice: $e');
-                                           // Show an error to the user
-                                           ScaffoldMessenger.of(context).showSnackBar(
-                                             SnackBar(
-                                               content: Text('Erreur lors de l\'enregistrement de la facture: ${e.toString()}'),
-                                               backgroundColor: Colors.red,
-                                             ),
-                                           );
-                                        }
-                                      }
-                                    : null,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF4E342E),
-                                  disabledBackgroundColor: Colors.grey[300],
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16)),
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
-                                  minimumSize: Size(MediaQuery.of(context).size.width * 0.7, 48), // Adjusted size
-                                ),
-                                child: Text(
-                                  _getPayButtonText(authViewModel.isLoggedIn, isPayEnabled, orderViewModel.cartEntries.isNotEmpty), // Pass cart empty state
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 16,
-                                    color: (isPayEnabled && authViewModel.isLoggedIn) ? Colors.white : Colors.grey[600],
-                                  ),
-                                ),
-                              ),
-
-                              // Login prompt if not logged in
-                              if (!authViewModel.isLoggedIn)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 8.0),
-                                  child: TextButton(
-                                    onPressed: () {
-                                      // Navigate to login page
-                                      // Use pushNamed to keep CartPage in stack, or pushReplacementNamed if desired
-                                      Navigator.pushNamed(context, '/login');
-                                    },
-                                    child: Text(
-                                      'Se connecter pour payer',
-                                      style: GoogleFonts.poppins(
-                                        color: Colors.brown,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
                           ),
                         ),
                       ],
                     ),
                   ),
           ),
+          // Boutons de validation et paiement (uniquement si le panier n'est pas vide)
+          if (!orderViewModel.cartEntries.isEmpty) ...[
+            // Bouton de validation
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: orderViewModel.isCartLocked
+                        ? Colors.grey
+                        : orderViewModel.isFirstValidation
+                            ? Colors.orange
+                            : Colors.brown,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(28),
+                    ),
+                    elevation: 6,
+                  ),
+                  onPressed: orderViewModel.isCartLocked
+                      ? null
+                      : () async {
+                          if (orderViewModel.cartEntries.isNotEmpty) {
+                            if (orderViewModel.isFirstValidation) {
+                              await orderViewModel.finalValidation();
+                            } else {
+                              await orderViewModel.firstValidation();
+                            }
+                          }
+                        },
+                  child: Text(
+                    orderViewModel.isCartLocked
+                        ? 'Commande Validée'
+                        : orderViewModel.isFirstValidation
+                            ? 'Confirmer la Validation'
+                            : 'Valider la Commande',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            // Bouton de paiement
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: orderViewModel.isCartLocked &&
+                          orderViewModel.cartEntries.isNotEmpty
+                      ? () {
+                          // Vider le panier et le déverrouiller avant d'aller à la page de paiement
+                          orderViewModel.addOrder(
+                              total); // Cette méthode vide le panier et déverrouille isCartLocked
+
+                          // Logique de paiement ici (appel de la fonction passée via widget.onPay)
+                          if (widget.onPay != null) {
+                            final items = orderViewModel.cartEntries
+                                .map((entry) => {
+                                      'id': entry.key.id,
+                                      'name': entry.key.name,
+                                      'price': entry.key.price,
+                                      'quantity': entry.value,
+                                    })
+                                .toList();
+
+                            final paymentInfo = PaymentInfo(
+                              transactionId: transactionId,
+                              total: total,
+                              date: date,
+                              time: time,
+                              userId: authViewModel.currentUser?.uid ?? '',
+                              invoiceId:
+                                  'INV-${DateTime.now().millisecondsSinceEpoch}',
+                              items: items,
+                            );
+
+                            widget.onPay!(paymentInfo);
+                            
+                            // Redirection vers la page de paiement
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ScanPayPage(
+                                  paymentInfo: paymentInfo,
+                                ),
+                              ),
+                            );
+                          }
+                        }
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: orderViewModel.isCartLocked
+                        ? Colors.green
+                        : Colors.grey,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(28),
+                    ),
+                    elevation: 6,
+                  ),
+                  child: const Text(
+                    'Payer',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 
   Widget _buildStep(String text, int step, {bool isLast = false}) {
-    final isActive = orderStep >= step;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Column(
-          children: [
-            Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                color: isActive ? const Color(0xFF5B8C6A) : Colors.grey[300],
-                shape: BoxShape.circle,
-              ),
-              child: isLast && isActive
-                  ? const Icon(Icons.check, color: Colors.white, size: 18)
-                  : null,
+    final orderViewModel = context.watch<OrderViewModel>();
+
+    bool isActive = false;
+    bool isCompleted = false;
+
+    if (step == 0) {
+      // 'Order has been received' - always completed if cart is not empty
+      isCompleted = !orderViewModel.cartEntries.isEmpty;
+      isActive = !orderViewModel.cartEntries.isEmpty;
+    } else if (step == 1) {
+      // 'Prepare your order' - completed after first validation
+      isCompleted =
+          orderViewModel.isFirstValidation || orderViewModel.isCartLocked;
+      isActive =
+          orderViewModel.isFirstValidation || orderViewModel.isCartLocked;
+    } else if (step == 2) {
+      // 'Your order is complete!' - completed after final validation (cart locked)
+      isCompleted = orderViewModel.isCartLocked;
+      isActive = orderViewModel.isCartLocked;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: isCompleted
+                  ? Colors.green
+                  : isActive
+                      ? Colors.brown
+                      : Colors.grey.shade300,
+              shape: BoxShape.circle,
             ),
-            if (!isLast)
-              Container(
-                width: 4,
-                height: 36,
-                color: isActive ? const Color(0xFF5B8C6A) : Colors.grey[300],
-              ),
-          ],
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.only(top: 2),
+            child: Icon(
+              isCompleted ? Icons.check : Icons.circle,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
             child: Text(
               text,
               style: GoogleFonts.poppins(
-                fontSize: 16,
-                color: isActive ? const Color(0xFF222222) : Colors.grey,
-                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                color: isActive ? Colors.brown : Colors.grey,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
               ),
             ),
           ),
-        ),
-      ],
+          if (!isLast)
+            Container(
+              margin: const EdgeInsets.only(left: 16),
+              width: 1,
+              height: 40,
+              color: Colors.grey.shade300,
+            ),
+        ],
+      ),
     );
-  }
-
-   String _getPayButtonText(bool isLoggedIn, bool isPayEnabled, bool isCartEmpty) {
-    if (isCartEmpty) {
-      return 'Payer facture';
-    }
-    if (!isLoggedIn) {
-      return 'Connectez-vous pour payer';
-    }
-    if (!isPayEnabled) {
-      return 'Validez votre commande d\'abord';
-    }
-    return 'Payer';
   }
 }

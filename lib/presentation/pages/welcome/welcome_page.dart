@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:math' as math;
+import 'package:provider/provider.dart';
+import 'package:coffee_shop/domain/viewmodels/auth_viewmodel.dart';
+import '../../../core/constants/app_routes.dart';
 
 class WelcomePage extends StatefulWidget {
   const WelcomePage({Key? key}) : super(key: key);
@@ -36,6 +39,20 @@ class _WelcomePageState extends State<WelcomePage>
         curve: Curves.easeInOut,
       ),
     );
+
+    // Check auth status after the first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authViewModel = context.read<AuthViewModel>();
+      if (authViewModel.isLoggedIn) {
+        // User is logged in, navigate to home page based on role
+        String initialRoute = authViewModel.getInitialRoute();
+        print(
+            'WelcomePage: User already logged in, navigating to $initialRoute');
+        Navigator.of(context).pushReplacementNamed(initialRoute);
+      } else {
+        print('WelcomePage: No user logged in.');
+      }
+    });
   }
 
   @override
@@ -94,42 +111,30 @@ class _WelcomePageState extends State<WelcomePage>
                       scale: _scaleAnimation.value,
                       child: Opacity(
                         opacity: _opacityAnimation.value,
-                        child: Container(
+                        child: SizedBox(
                           width: double.infinity,
                           height: 56,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF8D6E63), Color(0xFF4E342E)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.brown.withOpacity(0.6),
-                                spreadRadius: 2,
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF8D6E63),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
                               ),
-                            ],
-                          ),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(16),
-                              onTap: () {
-                                Navigator.of(context).pushNamed('/login');
-                              },
-                              child: const Center(
-                                child: Text(
-                                  'Se connecter',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1.2,
-                                  ),
-                                ),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              elevation: 8,
+                            ),
+                            onPressed: () {
+                              debugPrint(
+                                  'WelcomePage: Se connecter button tapped. Navigating to ${AppRoutes.login}');
+                              Navigator.of(context).pushNamed(AppRoutes.login);
+                            },
+                            child: const Text(
+                              'Se connecter',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.2,
                               ),
                             ),
                           ),
@@ -141,7 +146,8 @@ class _WelcomePageState extends State<WelcomePage>
                 const SizedBox(height: 18),
                 TextButton(
                   onPressed: () {
-                    Navigator.of(context).pushNamed('/signup');
+                    // Navigate to signup page
+                    Navigator.of(context).pushNamed(AppRoutes.signup);
                   },
                   child: const Text(
                     "Créer un compte",

@@ -8,7 +8,6 @@ import 'package:coffee_shop/domain/viewmodels/order_viewmodel.dart';
 import 'package:coffee_shop/domain/viewmodels/invoice_viewmodel.dart';
 import 'firebase_options.dart';
 import 'package:coffee_shop/data/services/init_service.dart';
-import 'package:coffee_shop/presentation/widgets/auth_wrapper.dart';
 import 'package:coffee_shop/presentation/pages/admin/admin_routes.dart';
 import 'package:coffee_shop/presentation/pages/welcome/welcome_page.dart';
 import 'package:coffee_shop/data/services/product_service.dart';
@@ -27,13 +26,11 @@ void main() async {
     // Attendre que Firebase soit complètement initialisé
     await Future.delayed(const Duration(seconds: 1));
 
-    // Créer le compte admin si nécessaire
-    await createAdminIfNotExists();
+    // Créer le compte admin si nécessaire (Commenté pour le développement si vous ne voulez pas démarrer sur l'admin)
+    // await createAdminIfNotExists();
 
-    // Initialize AuthViewModel with repository
-    final authRepository = AuthRepository();
+    // Initialize AuthViewModel
     final authViewModel = AuthViewModel();
-    authViewModel.setRepository(authRepository);
 
     // Stocker automatiquement les produits dans Firestore au démarrage
     await ProductService().fetchAndStoreProducts();

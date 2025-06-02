@@ -1,47 +1,39 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
-import 'package:coffee_shop/data/repositories/auth_repository.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:coffee_shop/core/constants/app_routes.dart';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
-import 'package:coffee_shop/main.dart'; // Pour accéder à navigatorKey
+import 'package:coffee_shop/main.dart';
 
 class AuthViewModel extends ChangeNotifier {
-  AuthRepository? _authRepository;
   bool _isLoading = false;
   String? _errorMessage;
   User? _currentUser;
   String? _userRole;
   Map<String, dynamic>? _userData;
   final AuthService _authService = AuthService();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   String? get userRole => _userRole;
   Map<String, dynamic>? get userData => _userData;
   bool get isAdmin => _userRole == 'admin';
   bool get isUser => _userRole == 'user';
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
+  User? get currentUser => _currentUser;
+  bool get isAuthenticated => _userData != null;
+  bool get isEmailVerified => _currentUser?.emailVerified ?? false;
+  String? get userId => _currentUser?.uid ?? _userData?['uid'];
+  bool get isLoggedIn => _currentUser != null;
 
   AuthViewModel() {
-    // Initialize current user
     _currentUser = _authService.currentUser;
-
-    // Listen to auth state changes
     _authService.authStateChanges.listen((User? user) {
       _currentUser = user;
-      notifyListeners();
-      debugPrint('Auth state changed: ${user?.email ?? 'null'}');
-    });
-  }
-
-  void setRepository(AuthRepository repository) {
-    _authRepository = repository;
-    _authRepository?.authStateChanges.listen((user) async {
-      print('Auth state changed (Firebase Auth): ${user?.email}');
       if (user != null) {
-        _currentUser = user;
-        await fetchUserRole();
+        fetchUserRole();
       } else {
-        _currentUser = null;
         _userRole = null;
         _userData = null;
       }
@@ -49,13 +41,34 @@ class AuthViewModel extends ChangeNotifier {
     });
   }
 
-  bool get isLoading => _isLoading;
-  String? get errorMessage => _errorMessage;
-  User? get currentUser => _currentUser;
-  bool get isAuthenticated => _userData != null;
-  bool get isEmailVerified => false;
-  String? get userId => _currentUser?.uid ?? _userData?['uid'];
-  bool get isLoggedIn => _currentUser != null;
+  Future<void> fetchUserRole() async {
+    if (_currentUser == null) return;
+
+    try {
+      final userDoc =
+          await _firestore.collection('users').doc(_currentUser!.uid).get();
+      if (userDoc.exists) {
+        _userData = userDoc.data();
+        _userRole = _userData?['role'] ?? 'user';
+      } else {
+        _userRole = 'user';
+        _userData = {
+          'uid': _currentUser!.uid,
+          'email': _currentUser!.email,
+          'role': 'user',
+          'createdAt': FieldValue.serverTimestamp(),
+        };
+        await _firestore
+            .collection('users')
+            .doc(_currentUser!.uid)
+            .set(_userData!);
+      }
+      notifyListeners();
+    } catch (e) {
+      print('Error fetching user role: $e');
+      _setError('Error fetching user data');
+    }
+  }
 
   Future<bool> signIn(String email, String password) async {
     _setLoading(true);
@@ -68,13 +81,7 @@ class AuthViewModel extends ChangeNotifier {
         _currentUser = userCredential.user;
         await fetchUserRole();
         notifyListeners();
-
-        // Redirection basée sur l'email
-        if (_currentUser?.email == 'admin@coffeeapp.com') {
-          return true; // Redirigera vers AdminWelcomePage
-        } else {
-          return true; // Redirigera vers UserHomePage
-        }
+        return true;
       }
       _setError('Failed to sign in');
       return false;
@@ -95,6 +102,21 @@ class AuthViewModel extends ChangeNotifier {
           await _authService.registerWithEmailAndPassword(email, password);
       if (userCredential != null) {
         _currentUser = userCredential.user;
+
+        // Create user document in Firestore
+        _userData = {
+          'uid': _currentUser!.uid,
+          'email': email,
+          'role': 'user',
+          'createdAt': FieldValue.serverTimestamp(),
+        };
+
+        await _firestore
+            .collection('users')
+            .doc(_currentUser!.uid)
+            .set(_userData!);
+        _userRole = 'user';
+
         notifyListeners();
         return true;
       }
@@ -108,7 +130,7 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> signOut() async {
+  Future<void> signOut(BuildContext context) async {
     _setLoading(true);
     try {
       await _authService.signOut();
@@ -117,13 +139,10 @@ class AuthViewModel extends ChangeNotifier {
       _userData = null;
       notifyListeners();
 
-      // Forcer la redirection vers la page de login
-      if (navigatorKey.currentContext != null) {
-        Navigator.of(navigatorKey.currentContext!).pushNamedAndRemoveUntil(
-          AppRoutes.login,
-          (route) => false,
-        );
-      }
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        AppRoutes.login,
+        (route) => false,
+      );
     } catch (e) {
       _setError('Sign out error: $e');
     } finally {
@@ -135,9 +154,9 @@ class AuthViewModel extends ChangeNotifier {
     _setLoading(true);
     _errorMessage = null;
     try {
-      final user = await _authRepository?.signInWithGoogle();
-      if (user != null) {
-        _currentUser = user;
+      final userCredential = await _authService.signInWithGoogle();
+      if (userCredential != null) {
+        _currentUser = userCredential.user;
         await fetchUserRole();
         print(
             'ViewModel Google - isAuthenticated: $isAuthenticated, userRole: $_userRole');
@@ -162,7 +181,7 @@ class AuthViewModel extends ChangeNotifier {
     _setLoading(true);
     _errorMessage = null;
     try {
-      await _authRepository?.resetPassword(email);
+      await _authService.resetPassword(email);
     } on UnimplementedError {
       _errorMessage =
           'La réinitialisation du mot de passe n\'est pas encore implémentée';
@@ -184,7 +203,7 @@ class AuthViewModel extends ChangeNotifier {
     _setLoading(true);
     _errorMessage = null;
     try {
-      await _authRepository?.sendEmailVerification();
+      await _authService.sendEmailVerification();
     } on UnimplementedError {
       _errorMessage = 'La vérification d\'email n\'est pas encore implémentée';
       print(_errorMessage);
@@ -199,38 +218,6 @@ class AuthViewModel extends ChangeNotifier {
       _setLoading(false);
       notifyListeners();
     }
-  }
-
-  Future<void> fetchUserRole() async {
-    final user = _currentUser;
-    if (user != null) {
-      try {
-        final userData = await _authRepository?.getUserData(user.uid);
-
-        if (userData != null) {
-          _userData = userData;
-          _userRole = userData['role'] ?? 'user';
-          print('Rôle utilisateur chargé depuis Firestore: $_userRole');
-        } else {
-          print(
-              'Aucun document utilisateur trouvé dans Firestore pour UID: ${user.uid}');
-          _userRole = 'user';
-          _userData = {'email': user.email, 'role': _userRole};
-        }
-      } catch (e) {
-        print(
-            'Erreur lors de la récupération du rôle/données depuis Firestore: $e');
-        _userRole = 'user';
-        _userData = null;
-      }
-    } else if (_userData != null) {
-      print('Utilisateur authentifié via Firestore, rôle: $_userRole');
-    } else {
-      _userRole = null;
-      _userData = null;
-      print('Aucun utilisateur authentifié.');
-    }
-    notifyListeners();
   }
 
   String getInitialRoute() {
@@ -256,39 +243,14 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  String? getUserUid() {
-    return _currentUser?.uid;
-  }
-
-  void _setError(String error) {
-    _errorMessage = error;
+  void _setError(String? message) {
+    _errorMessage = message;
     notifyListeners();
   }
 
   void _clearError() {
     _errorMessage = null;
-  }
-
-  Future<bool> signUp(String email, String password) async {
-    _setLoading(true);
-    _clearError();
-
-    try {
-      final userCredential =
-          await _authService.registerWithEmailAndPassword(email, password);
-      if (userCredential != null) {
-        _currentUser = userCredential.user;
-        notifyListeners();
-        return true;
-      }
-      _setError('Failed to register');
-      return false;
-    } catch (e) {
-      _setError('Registration error: $e');
-      return false;
-    } finally {
-      _setLoading(false);
-    }
+    notifyListeners();
   }
 }
 
