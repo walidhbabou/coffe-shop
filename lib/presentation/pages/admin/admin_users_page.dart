@@ -150,7 +150,8 @@ class AdminUsersPage extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: _primaryColor,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -334,7 +335,8 @@ class AdminUsersPage extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: (isAdmin ? _warningColor : _primaryColor).withOpacity(0.3),
+                color:
+                    (isAdmin ? _warningColor : _primaryColor).withOpacity(0.3),
                 blurRadius: 8,
                 offset: const Offset(0, 4),
               ),
@@ -396,7 +398,7 @@ class AdminUsersPage extends StatelessWidget {
   Widget _buildRoleBadge(String role) {
     final isAdmin = role.toLowerCase() == 'admin';
     final color = isAdmin ? _warningColor : _successColor;
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -488,7 +490,8 @@ class AdminUsersPage extends StatelessWidget {
           children: [
             const Icon(Icons.person_rounded, color: _primaryColor),
             const SizedBox(width: 8),
-            _buildText('Détails utilisateur', fontSize: 18, fontWeight: FontWeight.bold),
+            _buildText('Détails utilisateur',
+                fontSize: 18, fontWeight: FontWeight.bold),
           ],
         ),
         content: Column(
@@ -504,7 +507,8 @@ class AdminUsersPage extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: _buildText('Fermer', color: _primaryColor, fontWeight: FontWeight.w600),
+            child: _buildText('Fermer',
+                color: _primaryColor, fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -541,6 +545,21 @@ class AdminUsersPage extends StatelessWidget {
     Map<String, dynamic> user,
     AdminUsersViewModel viewModel,
   ) {
+    // Vérifier si l'utilisateur est l'admin
+    if (user['email'] == 'admin@coffeeapp.com') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+              'Impossible de supprimer le compte administrateur principal'),
+          backgroundColor: _dangerColor,
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -549,7 +568,8 @@ class AdminUsersPage extends StatelessWidget {
           children: [
             const Icon(Icons.warning_rounded, color: _dangerColor),
             const SizedBox(width: 8),
-            _buildText('Confirmer la suppression', fontSize: 18, fontWeight: FontWeight.bold),
+            _buildText('Confirmer la suppression',
+                fontSize: 18, fontWeight: FontWeight.bold),
           ],
         ),
         content: _buildText(
@@ -559,25 +579,40 @@ class AdminUsersPage extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: _buildText('Annuler', color: Colors.grey[600], fontWeight: FontWeight.w600),
+            child: _buildText('Annuler',
+                color: Colors.grey[600], fontWeight: FontWeight.w600),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
-              viewModel.deleteUser(user['uid']);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('Utilisateur supprimé avec succès'),
-                  backgroundColor: _successColor,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              );
+              await viewModel.deleteUser(user['uid']);
+              if (viewModel.errorMessage == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Utilisateur supprimé avec succès'),
+                    backgroundColor: _successColor,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(viewModel.errorMessage!),
+                    backgroundColor: _dangerColor,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: _dangerColor,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
             ),
             child: const Text('Supprimer'),
           ),

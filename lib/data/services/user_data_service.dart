@@ -346,6 +346,13 @@ class UserDataService {
   // Méthode pour supprimer un utilisateur par son UID (pour l'admin)
   static Future<void> deleteUser(String uid) async {
     try {
+      // Vérifier si l'utilisateur est l'admin
+      final userDoc = await _firestore.collection('users').doc(uid).get();
+      if (userDoc.exists && userDoc.data()?['email'] == 'admin@coffeeapp.com') {
+        throw Exception(
+            'Impossible de supprimer le compte administrateur principal');
+      }
+
       // Supprimer les documents des sous-collections (par exemple, payment_methods, addresses)
       // Note : Cela ne gère pas les données liées dans d'autres collections top-level ou les utilisateurs Firebase Auth (nécessite une logique côté serveur pour la sécurité).
 

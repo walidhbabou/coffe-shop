@@ -37,8 +37,8 @@ class AdminUsersViewModel with ChangeNotifier {
 
   // Méthode pour supprimer un utilisateur par son UID
   Future<void> deleteUser(String userId) async {
-    _isLoading = true; // Optional: Show loading during deletion
-    _errorMessage = null; // Clear previous errors
+    _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
 
     try {
@@ -47,12 +47,11 @@ class AdminUsersViewModel with ChangeNotifier {
       _users.removeWhere((user) => user['uid'] == userId);
       print('User with UID $userId deleted from ViewModel list.');
     } catch (e) {
-      _errorMessage = 'Failed to delete user: ${e.toString()}';
+      _errorMessage = e.toString();
       print(_errorMessage);
-      // Optionally refetch the list if deletion from local list is risky
-      // _fetchUsers();
+      // Ne pas rafraîchir la liste en cas d'erreur
     } finally {
-      _isLoading = false; // Optional: Hide loading
+      _isLoading = false;
       notifyListeners();
     }
   }
