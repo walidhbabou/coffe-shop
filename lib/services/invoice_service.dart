@@ -7,8 +7,13 @@ class InvoiceService {
 
   // Créer une nouvelle facture
   Future<String> createInvoice(Invoice invoice) async {
-    final docRef = await _firestore.collection(_collection).add(invoice.toMap());
-    return docRef.id;
+    try {
+      final docRef = await _firestore.collection(_collection).add(invoice.toMap());
+      return docRef.id;
+    } catch (e) {
+      print('Error creating invoice: $e');
+      rethrow;
+    }
   }
 
   // Obtenir la dernière facture d'un utilisateur
@@ -53,22 +58,42 @@ class InvoiceService {
   // Mettre à jour le statut d'une facture
   Future<void> updateInvoiceStatus(String invoiceId, String status, {String? paymentMethod}) async {
     try {
-      // Create a map for the update data
+      print('Début de la mise à jour de la facture $invoiceId');
+      print('Nouveau statut: $status');
+      print('Mode de paiement: $paymentMethod');
+
       Map<String, dynamic> updateData = {
-        'status': status
+        'status': status,
+        'updatedAt': FieldValue.serverTimestamp(),
       };
 
-      // Add paymentMethod to updateData if it's not null
       if (paymentMethod != null) {
         updateData['paymentMethod'] = paymentMethod;
       }
+
+      print('Données à mettre à jour: $updateData');
+
+      // Vérifier si la facture existe
+      final docSnapshot = await _firestore.collection(_collection).doc(invoiceId).get();
+      if (!docSnapshot.exists) {
+        throw Exception('La facture $invoiceId n\'existe pas');
+      }
+
+      print('Facture trouvée, état actuel: ${docSnapshot.data()?['status']}');
 
       await _firestore
           .collection(_collection)
           .doc(invoiceId)
           .update(updateData);
+
+      print('Mise à jour réussie dans Firestore');
+
+      // Vérifier la mise à jour
+      final updatedDoc = await _firestore.collection(_collection).doc(invoiceId).get();
+      print('Nouvel état dans Firestore: ${updatedDoc.data()?['status']}');
+
     } catch (e) {
-      print('Error updating invoice status: $e');
+      print('❌ Erreur lors de la mise à jour du statut: $e');
       rethrow;
     }
   }
@@ -85,15 +110,33 @@ class InvoiceService {
     });
   }
 
-  // Get all invoices (for admin)
-  Stream<List<Invoice>> getAllInvoices() {
+  // Get all invoices (for admin) with pagination
+  Stream<List<Invoice>> getAllInvoices({int limit = 10}) {
     return _firestore
         .collection(_collection)
         .orderBy('createdAt', descending: true)
+        .limit(limit)
         .snapshots()
         .map((snapshot) {
       return snapshot.docs.map((doc) => Invoice.fromFirestore(doc)).toList();
     });
+  }
+
+  // Get more invoices for pagination
+  Future<List<Invoice>> getMoreInvoices(DocumentSnapshot lastDocument, {int limit = 10}) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection(_collection)
+          .orderBy('createdAt', descending: true)
+          .startAfterDocument(lastDocument)
+          .limit(limit)
+          .get();
+
+      return querySnapshot.docs.map((doc) => Invoice.fromFirestore(doc)).toList();
+    } catch (e) {
+      print('Error getting more invoices: $e');
+      rethrow;
+    }
   }
 
   // Get a specific invoice by ID

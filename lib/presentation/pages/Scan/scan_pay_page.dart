@@ -9,13 +9,14 @@ import '../../../data/models/invoice_model.dart';
 import 'package:flutter/foundation.dart';
 import '../../../data/services/user_data_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../widgets/payment_widgets.dart';
 import '../../widgets/payment_method_card.dart';
+import '../../widgets/payment_info_card.dart';
+import '../../widgets/qr_code_section.dart';
 import '../../widgets/payment_option.dart';
 import '../../widgets/styled_button.dart';
 import '../../widgets/instruction_step.dart';
 import '../../widgets/payment_header.dart';
-import '../../widgets/payment_info_card.dart';
-import '../../widgets/qr_code_section.dart';
 
 class ScanPayPage extends StatefulWidget {
   final PaymentInfo? paymentInfo;
@@ -73,6 +74,7 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
           _isLoading = false;
         });
         _animationController.forward();
+        
       }
     } catch (e) {
       debugPrint('Error loading latest invoice: $e');
@@ -104,13 +106,8 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
   }
 
   Widget _buildLoadingContainer() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: _buildBoxDecoration(Colors.white, isCircle: true, hasElevation: true),
-      child: const CircularProgressIndicator(
-        valueColor: AlwaysStoppedAnimation<Color>(_primaryColor),
-        strokeWidth: 3,
-      ),
+    return buildLoadingContainer(
+      primaryColor: _primaryColor,
     );
   }
 
@@ -160,6 +157,30 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
 
   Widget _buildPaymentInfo(PaymentInfo info) {
     debugPrint('ScanPayPage - PaymentInfo: ${info.toMap()}');
+    
+    // Si le panier est vide, afficher un message et ne pas permettre le paiement
+    if (info.items.isEmpty) {
+      return _buildAnimatedContent(
+        Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildIconContainer(Icons.shopping_cart_outlined),
+              const SizedBox(height: 24),
+              _buildText('Panier vide', fontSize: 20, isBold: true),
+              const SizedBox(height: 8),
+              _buildText('Vous ne pouvez pas effectuer de paiement avec un panier vide', color: Colors.red),
+              const SizedBox(height: 32),
+              StyledButton(
+                text: 'Retour',
+                color: _primaryColor,
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     
     return _buildAnimatedContent(
       SingleChildScrollView(
@@ -227,16 +248,9 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
   }
 
   Widget _buildInstructionHeader() {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: _buildBoxDecoration(_primaryColor),
-          child: const Icon(Icons.info_outline, color: Colors.white, size: 20),
-        ),
-        const SizedBox(width: 12),
-        _buildText('Instructions pour le caissier', fontSize: 18, isBold: true, color: _primaryColor.shade700),
-      ],
+    return buildInstructionHeader(
+      primaryColor: _primaryColor,
+      title: 'Instructions pour le caissier',
     );
   }
 
@@ -256,39 +270,10 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
   }
 
   Widget _buildPaymentMethodSelector() {
-    final isSelected = _selectedPaymentMethod != null;
-    return InkWell(
-      onTap: () => _showPaymentMethodSelection(),
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: isSelected ? Colors.green : _primaryColor.withOpacity(0.3),
-            width: 2,
-          ),
-          borderRadius: BorderRadius.circular(16),
-          color: isSelected ? Colors.green.shade50 : Colors.grey.shade50,
-        ),
-        child: Row(
-          children: [
-            Icon(
-              isSelected ? Icons.check_circle : Icons.payment,
-              color: isSelected ? Colors.green : _primaryColor,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildText(
-                _selectedPaymentMethod ?? 'Choisir une méthode de paiement',
-                fontSize: 16,
-                color: isSelected ? Colors.green.shade700 : _primaryColor.shade600,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            Icon(Icons.arrow_forward_ios, size: 16, color: _primaryColor.shade400),
-          ],
-        ),
-      ),
+    return buildPaymentMethodSelector(
+      selectedPaymentMethod: _selectedPaymentMethod,
+      onTap: _showPaymentMethodSelection,
+      primaryColor: _primaryColor,
     );
   }
 
@@ -319,13 +304,13 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
     bool isBold = false,
     FontWeight fontWeight = FontWeight.normal,
   }) {
-    return Text(
-      text,
-      style: GoogleFonts.poppins(
-        fontSize: fontSize,
-        fontWeight: isBold ? FontWeight.bold : fontWeight,
-        color: color ?? _primaryColor,
-      ),
+    return buildStyledText(
+      text: text,
+      primaryColor: _primaryColor,
+      fontSize: fontSize,
+      color: color,
+      isBold: isBold,
+      fontWeight: fontWeight,
     );
   }
 
@@ -336,20 +321,12 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
     bool hasElevation = false,
     bool hasBorder = false,
   }) {
-    return BoxDecoration(
-      color: gradient == null ? color : null,
+    return buildBoxDecoration(
+      color: color,
       gradient: gradient,
-      shape: isCircle ? BoxShape.circle : BoxShape.rectangle,
-      borderRadius: isCircle ? null : BorderRadius.circular(20),
-      border: hasBorder ? Border.all(color: _primaryColor.withOpacity(0.1), width: 1) : null,
-      boxShadow: hasElevation ? [
-        BoxShadow(
-          color: _primaryColor.withOpacity(0.1),
-          blurRadius: 20,
-          spreadRadius: 5,
-          offset: hasElevation ? const Offset(0, 8) : Offset.zero,
-        ),
-      ] : null,
+      isCircle: isCircle,
+      hasElevation: hasElevation,
+      hasBorder: hasBorder,
     );
   }
 
@@ -379,7 +356,7 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
 
       if (mounted) {
         _showSnackBar('Paiement effectué avec succès !', Colors.green);
-        Navigator.of(context).pop();
+        Navigator.pushReplacementNamed(context, '/user_home');
       }
     } catch (e) {
       debugPrint('Error processing payment: $e');
@@ -474,96 +451,24 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
   }
 
   Widget _buildModalContent(String title, Widget content, {bool hasAddButton = false}) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (!hasAddButton) ...[
-            const SizedBox(height: 24),
-            _buildModalHandle(),
-          ],
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _buildText(title, fontSize: 22, isBold: true, color: _primaryColor.shade700),
-                if (hasAddButton)
-                  IconButton(
-                    icon: const Icon(Icons.add_circle_outline),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      Navigator.pushNamed(context, '/payment_methods');
-                    },
-                  ),
-              ],
-            ),
-          ),
-          Expanded(child: content),
-        ],
-      ),
+    return buildModalContent(
+      title: title,
+      content: content,
+      primaryColor: _primaryColor,
+      hasAddButton: hasAddButton,
+      onAdd: () {
+        Navigator.pop(context);
+        Navigator.pushNamed(context, '/payment_methods');
+      },
     );
   }
 
-  Widget _buildModalHandle() {
-    return Center(
-      child: Container(
-        width: 40,
-        height: 4,
-        decoration: BoxDecoration(
-          color: Colors.grey.shade300,
-          borderRadius: BorderRadius.circular(2),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyCardsState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.credit_card_off, size: 64, color: Colors.grey.shade400),
-          const SizedBox(height: 16),
-          _buildText('Aucune carte enregistrée', fontSize: 18, color: Colors.grey.shade600),
-          const SizedBox(height: 24),
-          StyledButton(
-            text: 'Ajouter une carte',
-            color: _primaryColor,
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pushNamed(context, '/payment_methods');
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showDeleteConfirmation(String paymentMethodId) {
-    showDialog(
+  Widget _buildDeleteConfirmation(String paymentMethodId) {
+    return buildDeleteConfirmation(
       context: context,
-      builder: (_) => AlertDialog(
-        title: _buildText('Supprimer cette méthode de paiement', fontSize: 18, isBold: true, color: _primaryColor.shade700),
-        content: _buildText('Êtes-vous sûr de vouloir supprimer cette méthode de paiement?', color: _primaryColor.shade600),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: _buildText('Annuler', fontWeight: FontWeight.w600, color: _primaryColor.shade600),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _handleDeletePaymentMethod(paymentMethodId);
-            },
-            child: _buildText('Supprimer', fontWeight: FontWeight.w600, color: Colors.red),
-          ),
-        ],
-      ),
+      primaryColor: _primaryColor,
+      paymentMethodId: paymentMethodId,
+      onDelete: () => _handleDeletePaymentMethod(paymentMethodId),
     );
   }
 
@@ -578,5 +483,22 @@ class _ScanPayPageState extends State<ScanPayPage> with TickerProviderStateMixin
         _showSnackBar('Erreur lors de la suppression: $e', Colors.red);
       }
     }
+  }
+
+  Widget _buildEmptyCardsState() {
+    return buildEmptyCardsState(
+      primaryColor: _primaryColor,
+      onAdd: () {
+        Navigator.pop(context);
+        Navigator.pushNamed(context, '/payment_methods');
+      },
+    );
+  }
+
+  void _showDeleteConfirmation(String paymentMethodId) {
+    showDialog(
+      context: context,
+      builder: (context) => _buildDeleteConfirmation(paymentMethodId),
+    );
   }
 }

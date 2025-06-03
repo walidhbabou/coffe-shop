@@ -120,6 +120,7 @@ class UserDataService {
         .collection('users')
         .doc(userId)
         .collection('payment_methods')
+        .orderBy('createdAt', descending: false)
         .snapshots();
   }
 
@@ -154,12 +155,12 @@ class UserDataService {
         .doc(userId)
         .collection('payment_methods')
         .add({
-      'cardType': cardType,
-      'lastFourDigits': lastFourDigits,
-      'expiryDate': expiryDate,
-      'isDefault': isDefault,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
+          'cardType': cardType,
+          'lastFourDigits': lastFourDigits,
+          'expiryDate': expiryDate,
+          'isDefault': isDefault,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
   }
 
   static Future<void> deletePaymentMethod(String paymentMethodId) async {
@@ -172,37 +173,6 @@ class UserDataService {
         .collection('payment_methods')
         .doc(paymentMethodId)
         .delete();
-  }
-
-  static Future<void> setDefaultPaymentMethod(String paymentMethodId) async {
-    final userId = _auth.currentUser?.uid;
-    if (userId == null) throw Exception('Utilisateur non connecté');
-
-    final batch = _firestore.batch();
-
-    // Mettre à jour toutes les cartes pour les marquer comme non par défaut
-    final otherCards = await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('payment_methods')
-        .where('isDefault', isEqualTo: true)
-        .get();
-
-    for (var doc in otherCards.docs) {
-      batch.update(doc.reference, {'isDefault': false});
-    }
-
-    // Marquer la carte sélectionnée comme par défaut
-    batch.update(
-      _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('payment_methods')
-          .doc(paymentMethodId),
-      {'isDefault': true},
-    );
-
-    await batch.commit();
   }
 
   static Future<void> addAddress({
@@ -241,6 +211,37 @@ class UserDataService {
     } else {
       return const Stream.empty();
     }
+  }
+
+  static Future<void> setDefaultPaymentMethod(String paymentMethodId) async {
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) throw Exception('Utilisateur non connecté');
+
+    final batch = _firestore.batch();
+
+    // Mettre à jour toutes les cartes pour les marquer comme non par défaut
+    final otherCards = await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('payment_methods')
+        .where('isDefault', isEqualTo: true)
+        .get();
+
+    for (var doc in otherCards.docs) {
+      batch.update(doc.reference, {'isDefault': false});
+    }
+
+    // Marquer la carte sélectionnée comme par défaut
+    batch.update(
+      _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('payment_methods')
+          .doc(paymentMethodId),
+      {'isDefault': true},
+    );
+
+    await batch.commit();
   }
 
   // Méthode pour ajouter un favori
