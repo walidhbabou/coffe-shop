@@ -17,7 +17,6 @@ import '../../presentation/pages/profile/addresses_page.dart';
 import '../../presentation/pages/profile/notifications_page.dart';
 import '../../presentation/pages/profile/payment_methods_page.dart';
 import '../../presentation/pages/profile/personal_info_page.dart';
-import '../../presentation/pages/profile/rewards_page.dart';
 import '../../presentation/pages/profile/about_page.dart';
 
 class AppRoutes {
@@ -37,7 +36,6 @@ class AppRoutes {
   static const String paymentMethods = '/payment_methods';
   static const String addresses = '/addresses';
   static const String notifications = '/notifications';
-  static const String rewards = '/rewards';
   static const String about = '/about';
 
   static Map<String, WidgetBuilder> generateRoutes() {
@@ -55,7 +53,6 @@ class AppRoutes {
       paymentMethods: (context) => const PaymentMethodsPage(),
       addresses: (context) => const AddressesPage(),
       notifications: (context) => const NotificationsPage(),
-      rewards: (context) => const RewardsPage(),
       about: (context) => const AboutPage(),
     };
   }

@@ -9,7 +9,6 @@ class NotificationsPage extends StatefulWidget {
 
 class _NotificationsPageState extends State<NotificationsPage> {
   bool _pushNotifications = true;
-  bool _emailNotifications = true;
   bool _orderUpdates = true;
   bool _promotions = true;
   bool _newsletter = false;
@@ -38,26 +37,13 @@ class _NotificationsPageState extends State<NotificationsPage> {
             },
           ),
           const SizedBox(height: 24),
-          _buildSectionTitle('Notifications par email'),
-          const SizedBox(height: 16),
-          _buildNotificationSwitch(
-            title: 'Activer les notifications par email',
-            subtitle: 'Recevoir des emails de Coffee Shop',
-            value: _emailNotifications,
-            onChanged: (value) {
-              setState(() {
-                _emailNotifications = value;
-              });
-            },
-          ),
-          const SizedBox(height: 24),
-          _buildSectionTitle('Préférences de notification'),
+          _buildSectionTitle('Types de notifications'),
           const SizedBox(height: 16),
           _buildNotificationSwitch(
             title: 'Mises à jour de commande',
             subtitle: 'Suivi de vos commandes en temps réel',
             value: _orderUpdates,
-            onChanged: _emailNotifications
+            onChanged: _pushNotifications
                 ? (value) {
                     setState(() {
                       _orderUpdates = value;
@@ -69,7 +55,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
             title: 'Promotions',
             subtitle: 'Offres spéciales et réductions',
             value: _promotions,
-            onChanged: _emailNotifications
+            onChanged: _pushNotifications
                 ? (value) {
                     setState(() {
                       _promotions = value;
@@ -81,7 +67,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
             title: 'Newsletter',
             subtitle: 'Actualités et articles sur le café',
             value: _newsletter,
-            onChanged: _emailNotifications
+            onChanged: _pushNotifications
                 ? (value) {
                     setState(() {
                       _newsletter = value;
@@ -89,9 +75,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   }
                 : null,
           ),
-          const SizedBox(height: 24),
-          _buildSectionTitle('Autres notifications'),
-          const SizedBox(height: 16),
           _buildNotificationSwitch(
             title: 'Nouveaux produits',
             subtitle: 'Découvrez nos dernières créations',

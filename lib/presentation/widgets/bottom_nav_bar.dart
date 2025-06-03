@@ -35,10 +35,6 @@ class SharedBottomNavBar extends StatelessWidget {
           icon: Icon(Icons.person_outline),
           label: 'Account',
         ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.star_border),
-          label: 'Rewards',
-        ),
       ],
     );
   }

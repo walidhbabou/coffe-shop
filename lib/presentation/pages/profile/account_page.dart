@@ -5,7 +5,6 @@ import 'package:coffee_shop/presentation/pages/profile/personal_info_page.dart';
 import 'package:coffee_shop/presentation/pages/profile/payment_methods_page.dart';
 import 'package:coffee_shop/presentation/pages/profile/addresses_page.dart';
 import 'package:coffee_shop/presentation/pages/profile/notifications_page.dart';
-import 'package:coffee_shop/presentation/pages/profile/rewards_page.dart';
 import 'package:coffee_shop/presentation/pages/profile/about_page.dart';
 
 class AccountPage extends StatelessWidget {
@@ -74,26 +73,6 @@ class AccountPage extends StatelessWidget {
                 context,
                 MaterialPageRoute(builder: (context) => const NotificationsPage()),
               );
-            },
-          ),
-          const SizedBox(height: 24),
-          _buildSectionTitle('Récompenses & Avantages'),
-          _buildSettingItem(
-            icon: Icons.star_border,
-            title: 'Étoiles & Récompenses',
-            subtitle: '150 étoiles disponibles',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const RewardsPage()),
-              );
-            },
-          ),
-          _buildSettingItem(
-            icon: Icons.card_giftcard,
-            title: 'Cartes cadeaux',
-            onTap: () {
-              // TODO: Naviguer vers la page des cartes cadeaux
             },
           ),
           const SizedBox(height: 24),
@@ -189,25 +168,6 @@ class AccountPage extends StatelessWidget {
                   style: TextStyle(
                     color: Colors.grey[600],
                     fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.brown[50],
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    'Membre Gold',
-                    style: TextStyle(
-                      color: Colors.brown[700],
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
                   ),
                 ),
               ],
